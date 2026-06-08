@@ -201,7 +201,7 @@ export default function AuctionArena() {
   // ── Shared sub-components (rendered inside appropriate tab panels) ──────────
 
   /** Left: Player spotlight card */
-  const SpotlightPanel = () => (
+  const renderSpotlightPanel = () => (
     <div className="lg:col-span-8 flex flex-col justify-between glass-panel rounded-2xl p-6 relative overflow-hidden">
       <AnimatePresence mode="wait">
         {currentPlayer ? (
@@ -577,7 +577,7 @@ export default function AuctionArena() {
   );
 
   /** Right: Standings (teams ticker in card form) */
-  const StandingsPanel = () => (
+  const renderStandingsPanel = () => (
     <div className="glass-panel rounded-2xl p-4">
       <h3 className="text-xs font-bold uppercase tracking-widest text-av-muted border-b border-border-custom pb-2 mb-3">
         Team Standings
@@ -620,7 +620,7 @@ export default function AuctionArena() {
   );
 
   /** Right: Bidding box + chat + admin */
-  const BiddingAndChatPanel = () => (
+  const renderBiddingAndChatPanel = () => (
     <div className="lg:col-span-4 flex flex-col gap-6">
 
       {/* Bidding box */}
@@ -894,8 +894,8 @@ export default function AuctionArena() {
 
       {/* ── Desktop Grid (lg+) ─────────────────────────────────────────────── */}
       <div className="hidden lg:flex flex-1 max-w-7xl w-full mx-auto px-4 py-6 grid-cols-12 gap-6 relative z-10 lg:grid">
-        <SpotlightPanel />
-        <BiddingAndChatPanel />
+        {renderSpotlightPanel()}
+        {renderBiddingAndChatPanel()}
       </div>
 
       {/* ── Mobile Tab Layout (< lg) ───────────────────────────────────────── */}
@@ -903,12 +903,12 @@ export default function AuctionArena() {
         {mobileTab === 'spotlight' && (
           <div className="flex flex-col gap-6">
             {/* Render spotlight as a standalone card on mobile */}
-            <SpotlightPanel />
+            {renderSpotlightPanel()}
           </div>
         )}
         {mobileTab === 'standings' && (
           <div className="flex flex-col gap-6">
-            <StandingsPanel />
+            {renderStandingsPanel()}
           </div>
         )}
         {mobileTab === 'chat' && (
