@@ -49,24 +49,24 @@ export default function AuctionArena() {
   );
 
   // ── V3 Upgraded Web Audio Sounds ──────────────────────────────────────────
-  const playSound = (type: 'bid' | 'sold' | 'going-once' | 'going-twice') => {
+  const playSound = (type: 'bid' | 'sold' | 'going-once' | 'going-twice' | 'warning-3' | 'warning-2' | 'warning-1') => {
     if (typeof window === 'undefined') return;
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
 
       if (type === 'bid') {
-        // Short crisp chime
+        // Short crisp auction bell/chime
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.08);
-        gain.gain.setValueAtTime(0.12, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+        osc.frequency.setValueAtTime(1200, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1500, ctx.currentTime + 0.05);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
         osc.start();
-        osc.stop(ctx.currentTime + 0.15);
+        osc.stop(ctx.currentTime + 0.1);
       } else if (type === 'going-once' || type === 'going-twice') {
         // Warning drum
         const osc = ctx.createOscillator();
@@ -80,6 +80,34 @@ export default function AuctionArena() {
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
         osc.start();
         osc.stop(ctx.currentTime + 0.3);
+      } else if (type === 'warning-3' || type === 'warning-2' || type === 'warning-1') {
+        // Final 3 seconds warning sequence - becoming more urgent
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        
+        let freq = 500;
+        let vol = 0.15;
+        let duration = 0.15;
+        
+        if (type === 'warning-3') {
+          freq = 500;
+        } else if (type === 'warning-2') {
+          freq = 650;
+          vol = 0.22;
+        } else if (type === 'warning-1') {
+          freq = 800;
+          vol = 0.30;
+          duration = 0.25;
+        }
+        
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        gain.gain.setValueAtTime(vol, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+        osc.start();
+        osc.stop(ctx.currentTime + duration);
       } else if (type === 'sold') {
         // Celebratory triple chime + gavel
         [0, 0.15, 0.3].forEach((delay, i) => {
@@ -126,6 +154,19 @@ export default function AuctionArena() {
   const lastBidAmount = useRef(0);
   const lastBidderId = useRef<string | null>(null);
   const lastPhase = useRef<string | null>(null);
+  const lastWarningTick = useRef<number | null>(null);
+
+  // Warning ticks for final 3 seconds
+  useEffect(() => {
+    if (phase === 'BIDDING' && countdown <= 3 && countdown > 0) {
+      if (lastWarningTick.current !== countdown) {
+        playSound(`warning-${countdown}` as any);
+        lastWarningTick.current = countdown;
+      }
+    } else {
+      lastWarningTick.current = null;
+    }
+  }, [countdown, phase]);
 
   useEffect(() => {
     if (phase === 'BIDDING' && currentBidderId && (currentBid > lastBidAmount.current || currentBidderId !== lastBidderId.current)) {
@@ -397,6 +438,22 @@ export default function AuctionArena() {
 
       {/* ── Overlays ──────────────────────────────────────────────────────── */}
       <AnimatePresence>
+        {/* V3: Big warning countdown overlay */}
+        {phase === 'BIDDING' && countdown <= 3 && countdown > 0 && (
+          <motion.div
+            key={countdown}
+            initial={{ scale: 2.2, opacity: 0 }}
+            animate={{ scale: 1, opacity: 0.2 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.45, ease: "easeOut" }}
+            className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-10"
+          >
+            <span className="text-[14rem] font-black text-neon-red tracking-tight leading-none filter drop-shadow-[0_0_40px_rgba(255,51,102,0.4)]">
+              {countdown}
+            </span>
+          </motion.div>
+        )}
+
         {phase === 'RESOLVING' && countdownText && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -836,13 +893,38 @@ export default function AuctionArena() {
               Reset Room
             </button>
           </div>
+
+          <div className="border-t border-border-custom/50 pt-3 mt-1.5">
+            <label className="text-[9px] uppercase font-black text-av-muted block mb-2">
+              Set Timer (Applies Next Player)
+            </label>
+            <div className="grid grid-cols-4 gap-1.5">
+              {[5, 10, 15, 20].map((sec) => (
+                <button
+                  key={sec}
+                  onClick={() => triggerAdminAction('change-timer', sec.toString())}
+                  className={`py-1 text-[10px] font-extrabold rounded-lg border transition-all ${
+                    timerDuration === sec
+                      ? 'bg-neon-gold/25 border-neon-gold text-neon-gold shadow-[0_0_10px_rgba(245,197,24,0.2)]'
+                      : 'bg-glass border-border-custom text-av-muted hover:text-white'
+                  }`}
+                >
+                  {sec}s
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </div>
   );
 
   return (
-    <div className="min-h-screen flex flex-col bg-midnight text-av-text">
+    <div className="min-h-screen flex flex-col bg-midnight text-av-text relative">
+      {/* Screen Highlight on final 3 seconds */}
+      {phase === 'BIDDING' && countdown <= 3 && countdown > 0 && !paused && (
+        <div className="pointer-events-none fixed inset-0 z-50 ring-[16px] ring-neon-red/15 animate-pulse shadow-[inset_0_0_80px_rgba(255,51,102,0.2)]" />
+      )}
       <Navbar />
 
       {/* Purse & Squad Ticker */}
@@ -899,7 +981,7 @@ export default function AuctionArena() {
       </div>
 
       {/* ── Mobile Tab Layout (< lg) ───────────────────────────────────────── */}
-      <div className="lg:hidden flex-1 max-w-7xl w-full mx-auto px-4 py-4 relative z-10 pb-24">
+      <div className="lg:hidden flex-1 max-w-7xl w-full mx-auto px-4 py-4 relative z-10 pb-[170px]">
         {mobileTab === 'spotlight' && (
           <div className="flex flex-col gap-6">
             {/* Render spotlight as a standalone card on mobile */}
@@ -913,98 +995,6 @@ export default function AuctionArena() {
         )}
         {mobileTab === 'chat' && (
           <div className="flex flex-col gap-6">
-            {/* Bidding box */}
-            <div className="glass-panel rounded-2xl p-6 flex flex-col justify-between min-h-[280px]">
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex flex-col">
-                  <span className="text-xs uppercase font-extrabold tracking-wider text-av-muted flex items-center space-x-1">
-                    <Circle className={`h-2.5 w-2.5 ${paused ? 'bg-neon-red' : 'bg-neon-gold'} rounded-full animate-pulse`} />
-                    <span>{paused ? 'PAUSED' : 'LIVE'}</span>
-                  </span>
-                  <span className="text-[9px] text-av-muted font-bold mt-1 uppercase tracking-wider">
-                    Auction Timer: {timerDuration}s
-                  </span>
-                </div>
-                <div className="relative flex items-center justify-center w-12 h-12">
-                  <svg className="w-full h-full transform -rotate-90">
-                    <circle cx="24" cy="24" r="20" className="stroke-white/5 fill-transparent" strokeWidth="2.5" />
-                    <circle
-                      cx="24"
-                      cy="24"
-                      r="20"
-                      className={`fill-transparent transition-all duration-1000 ${countdown <= 3 ? 'stroke-neon-red animate-pulse' : 'stroke-neon-cyan'}`}
-                      strokeWidth="2.5"
-                      strokeDasharray={2 * Math.PI * 20}
-                      strokeDashoffset={2 * Math.PI * 20 * (1 - countdown / timerDuration)}
-                    />
-                  </svg>
-                  <span className={`absolute text-sm font-black ${countdown <= 3 ? 'text-neon-red animate-pulse' : 'text-white'}`}>
-                    {countdown}
-                  </span>
-                </div>
-              </div>
-
-              <div className="text-center my-4">
-                <span className="text-[9px] uppercase font-bold tracking-widest text-av-muted block mb-1">
-                  {activeBidder ? 'Current Bid' : 'Base Price'}
-                </span>
-                <h2 className="text-4xl font-black text-white">{formatCr(currentBid)}</h2>
-                {activeBidder ? (
-                  <div className="inline-flex items-center space-x-1 px-3 py-0.5 rounded-full text-xs font-bold mt-1 bg-white/5 border border-white/10 text-white">
-                    <span>{activeBidder.emoji}</span>
-                    <span>{activeBidder.name}</span>
-                  </div>
-                ) : (
-                  <span className="text-[10px] text-av-muted mt-1 block">Opening Bid (Pending)</span>
-                )}
-              </div>
-
-              {(phase === 'BIDDING' || phase === 'RESOLVING') && !paused && userTeamId ? (
-                <div className="space-y-3">
-                  {(() => {
-                    const nextBidAmount = currentBidderId ? getNextBid(currentBid) : currentBid;
-                    const isHighestBidder = currentBidderId === userTeamId;
-                    const hasPurse = userTeam ? userTeam.purse >= nextBidAmount : false;
-                    const isRosterFull = userTeam ? userTeam.squad.length >= 25 : false;
-                    const isOverseasQuotaFull = userTeam && currentPlayer?.overseas
-                      ? userTeam.squad.filter(p => p.overseas).length >= 8
-                      : false;
-
-                    let btnText = `BID ${formatCr(nextBidAmount)}`;
-                    let isDisabled = false;
-
-                    if (isHighestBidder) { btnText = `YOU HOLD HIGHEST BID (${formatCr(currentBid)})`; isDisabled = true; }
-                    else if (isRosterFull) { btnText = `ROSTER FULL (25/25)`; isDisabled = true; }
-                    else if (isOverseasQuotaFull) { btnText = `OVERSEAS QUOTA FULL (8/8)`; isDisabled = true; }
-                    else if (!hasPurse) { btnText = `INSUFFICIENT PURSE (₹${userTeam?.purse.toFixed(2)} Cr)`; isDisabled = true; }
-
-                    return (
-                      <button
-                        onClick={() => placeBid()}
-                        disabled={isDisabled}
-                        className={`w-full py-4 rounded-2xl text-xs font-black tracking-widest uppercase transition-all duration-300 shadow-lg ${
-                          isDisabled
-                            ? 'bg-glass border border-border-custom text-av-muted cursor-not-allowed opacity-60'
-                            : 'bg-gradient-to-r from-neon-gold to-yellow-500 text-midnight hover:shadow-[0_0_25px_rgba(245,197,24,0.4)] hover:scale-[1.02] active:scale-[0.98] font-extrabold cursor-pointer border-t border-white/20'
-                        }`}
-                      >
-                        {btnText}
-                      </button>
-                    );
-                  })()}
-                </div>
-              ) : (
-                <div className="text-center py-4 bg-void/50 border border-border-custom rounded-xl text-xs text-av-muted font-bold">
-                  {paused ? 'Auction is Paused' : !userTeamId ? 'Spectating Mode Only' : 'Bidding is Closed'}
-                </div>
-              )}
-              {errorMsg && (
-                <div className="text-[10px] text-neon-red font-bold text-center mt-2 animate-shake">
-                  {errorMsg}
-                </div>
-              )}
-            </div>
-
             {/* Chat */}
             <div className="glass-panel rounded-2xl p-4 flex flex-col justify-between min-h-[300px] max-h-[400px]">
               <h3 className="text-xs font-bold uppercase tracking-widest text-av-muted border-b border-border-custom pb-2">
@@ -1081,11 +1071,142 @@ export default function AuctionArena() {
                   <button onClick={() => triggerAdminAction('restart-timer')} className="bg-glass border border-border-custom hover:bg-glass-hover text-[10px] font-bold p-2 py-1.5 rounded-lg text-center">Reset Timer</button>
                   <button onClick={() => triggerAdminAction('reset')} className="bg-glass border border-border-custom hover:bg-glass-hover text-[10px] font-bold p-2 py-1.5 rounded-lg text-center text-neon-red">Reset Room</button>
                 </div>
+
+                <div className="border-t border-border-custom/50 pt-3 mt-1.5">
+                  <label className="text-[9px] uppercase font-black text-av-muted block mb-2">
+                    Set Timer (Applies Next Player)
+                  </label>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[5, 10, 15, 20].map((sec) => (
+                      <button
+                        key={sec}
+                        onClick={() => triggerAdminAction('change-timer', sec.toString())}
+                        className={`py-1 text-[10px] font-extrabold rounded-lg border transition-all ${
+                          timerDuration === sec
+                            ? 'bg-neon-gold/25 border-neon-gold text-neon-gold shadow-[0_0_10px_rgba(245,197,24,0.2)]'
+                            : 'bg-glass border-border-custom text-av-muted hover:text-white'
+                        }`}
+                      >
+                        {sec}s
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </div>
         )}
       </div>
+
+      {/* ── Mobile Fixed Bottom Bidding Panel (lg hidden) ───────────────── */}
+      {currentPlayer && (phase === 'BIDDING' || phase === 'RESOLVING' || phase === 'SOLD' || phase === 'UNSOLD') && (
+        <div className="lg:hidden fixed bottom-[56px] left-0 right-0 z-40 bg-void/95 border-t border-border-custom p-3 flex flex-col gap-2 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] backdrop-blur-md">
+          {/* Player & Bid details */}
+          <div className="flex justify-between items-center text-xs">
+            <div className="flex items-center space-x-2">
+              <span className="text-base">{currentPlayer.flag}</span>
+              <div className="min-w-0">
+                <div className="font-extrabold text-white truncate uppercase max-w-[130px]">{currentPlayer.name}</div>
+                <span className="text-[9px] text-av-muted uppercase font-bold block">{currentPlayer.role} • OVR {currentPlayer.overall}</span>
+              </div>
+            </div>
+            
+            {/* Timer & Price */}
+            <div className="flex items-center space-x-2.5">
+              {/* Compact Timer circle */}
+              <div className="relative flex items-center justify-center w-8 h-8">
+                <svg className="w-full h-full transform -rotate-90">
+                  <circle cx="16" cy="16" r="13" className="stroke-white/5 fill-transparent" strokeWidth="2" />
+                  <circle
+                    cx="16"
+                    cy="16"
+                    r="13"
+                    className={`fill-transparent transition-all duration-1000 ${countdown <= 3 && phase === 'BIDDING' ? 'stroke-neon-red animate-pulse' : 'stroke-neon-cyan'}`}
+                    strokeWidth="2"
+                    strokeDasharray={2 * Math.PI * 13}
+                    strokeDashoffset={2 * Math.PI * 13 * (1 - (phase === 'RESOLVING' ? 1.5 : countdown) / (phase === 'RESOLVING' ? 1.5 : timerDuration))}
+                  />
+                </svg>
+                <span className={`absolute text-[9px] font-black ${countdown <= 3 && phase === 'BIDDING' ? 'text-neon-red animate-pulse' : 'text-white'}`}>
+                  {phase === 'RESOLVING' ? '!' : countdown}
+                </span>
+              </div>
+
+              {/* Price Details */}
+              <div className="text-right">
+                <span className="text-[8px] uppercase text-av-muted font-bold block leading-none mb-0.5">
+                  {currentBidderId ? 'Current Bid' : 'Base Price'}
+                </span>
+                <span className="text-xs font-black text-neon-green">
+                  {currentBidderId ? formatCr(currentBid) : `₹${currentPlayer.basePrice.toFixed(2)} Cr`}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Bid Button and Leader row */}
+          <div className="flex items-center gap-2">
+            {/* Leader team info */}
+            <div className="flex-1 bg-white/5 border border-border-custom rounded-xl p-1.5 py-1.5 flex items-center justify-between text-[10px]">
+              <span className="text-av-muted font-bold uppercase truncate">Leader:</span>
+              {activeBidder ? (
+                <span className="font-extrabold truncate ml-1" style={{ color: activeBidder.primaryColor }}>
+                  {activeBidder.emoji} {activeBidder.abbr}
+                </span>
+              ) : (
+                <span className="text-av-muted italic truncate ml-1">None</span>
+              )}
+            </div>
+
+            {/* Bidding trigger */}
+            <div className="flex-[1.5]">
+              {(() => {
+                const nextBidAmount = currentBidderId ? getNextBid(currentBid) : currentBid;
+                const isHighestBidder = currentBidderId === userTeamId;
+                const hasPurse = userTeam ? userTeam.purse >= nextBidAmount : false;
+                const isRosterFull = userTeam ? userTeam.squad.length >= 25 : false;
+                const isOverseasQuotaFull = userTeam && currentPlayer?.overseas
+                  ? userTeam.squad.filter(p => p.overseas).length >= 8
+                  : false;
+
+                let btnText = `BID ${formatCrShort(nextBidAmount)}`;
+                let isDisabled = false;
+
+                if (isHighestBidder) {
+                  btnText = `YOU LEAD`;
+                  isDisabled = true;
+                } else if (isRosterFull) {
+                  btnText = `FULL`;
+                  isDisabled = true;
+                } else if (isOverseasQuotaFull) {
+                  btnText = `OVERSEAS`;
+                  isDisabled = true;
+                } else if (!hasPurse) {
+                  btnText = `NO PURSE`;
+                  isDisabled = true;
+                } else if (paused) {
+                  btnText = `PAUSED`;
+                  isDisabled = true;
+                }
+
+                return (
+                  <button
+                    onClick={() => placeBid()}
+                    disabled={isDisabled}
+                    className={`w-full py-2 rounded-xl text-[10px] font-black tracking-wider uppercase transition-all duration-200 shadow-md ${
+                      isDisabled
+                        ? 'bg-glass border border-border-custom text-av-muted cursor-not-allowed opacity-60'
+                        : 'bg-gradient-to-r from-neon-gold to-yellow-500 text-midnight hover:shadow-[0_0_15px_rgba(245,197,24,0.3)] hover:scale-[1.02] active:scale-[0.98]'
+                    }`}
+                  >
+                    {btnText}
+                  </button>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Mobile Bottom Tab Bar ──────────────────────────────────────────── */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-void/95 backdrop-blur-md border-t border-border-custom">

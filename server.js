@@ -263,54 +263,61 @@ app.prepare().then(() => {
       if (room.status !== 'auction' || room.paused) return;
 
       if (room.phase === 'BIDDING') {
-        room.countdown--;
-        io.to(roomCode).emit('countdown-tick', { countdown: room.countdown });
+        room.tickCount = (room.tickCount || 0) + 1;
+        if (room.tickCount >= 2) {
+          room.tickCount = 0;
+          room.countdown--;
+          io.to(roomCode).emit('countdown-tick', { countdown: room.countdown });
 
-        if (room.countdown <= 0) {
-          if (room.currentBidderId) {
-            // V3 Fix: Start GOING ONCE / GOING TWICE sequence
-            room.phase = 'RESOLVING';
-            room.countdownText = 'GOING ONCE';
-            room.countdown = 2;
-            io.to(roomCode).emit('room-state', getSerializableRoomState(room));
-          } else {
-            // No bidder — immediately unsold
-            resolvePlayer(roomCode);
+          if (room.countdown <= 0) {
+            if (room.currentBidderId) {
+              room.phase = 'RESOLVING';
+              room.countdownText = 'GOING ONCE';
+              room.countdown = 3; // 3 ticks of 500ms = 1.5s
+              room.tickCount = 0;
+              io.to(roomCode).emit('room-state', getSerializableRoomState(room));
+            } else {
+              // No bidder — immediately unsold
+              resolvePlayer(roomCode);
+            }
           }
         }
       }
       else if (room.phase === 'RESOLVING') {
         room.countdown--;
-
-        if (room.countdown === 1 && room.countdownText === 'GOING ONCE') {
-          // Transition to GOING TWICE
-          room.countdownText = 'GOING TWICE';
-          room.countdown = 2;
-          io.to(roomCode).emit('room-state', getSerializableRoomState(room));
-        } else if (room.countdown === 0 && room.countdownText === 'GOING TWICE') {
-          // Final call — resolve (SOLD)
-          resolvePlayer(roomCode);
+        if (room.countdown <= 0) {
+          if (room.countdownText === 'GOING ONCE') {
+            room.countdownText = 'GOING TWICE';
+            room.countdown = 3; // 3 ticks of 500ms = 1.5s
+            io.to(roomCode).emit('room-state', getSerializableRoomState(room));
+          } else if (room.countdownText === 'GOING TWICE') {
+            // Final call — resolve (SOLD)
+            resolvePlayer(roomCode);
+          }
         }
       }
       else if (room.phase === 'SOLD' || room.phase === 'UNSOLD') {
-        room.countdown--;
-        if (room.countdown <= 0) {
-          room.currentIndex++;
-          loadNextPlayer(roomCode);
+        room.tickCount = (room.tickCount || 0) + 1;
+        if (room.tickCount >= 2) {
+          room.tickCount = 0;
+          room.countdown--;
+          if (room.countdown <= 0) {
+            room.currentIndex++;
+            loadNextPlayer(roomCode);
+          }
         }
       }
     });
-  }, 1000);
-
-  // ─── V3: IPL Increment Slabs ─────────────────────────────────────────────
+  }, 500);
 
   function getNextIncrement(bid) {
-    if (bid < 0.50) return 0.10;  // 10L increments
-    if (bid < 1.00) return 0.25;  // 25L increments
-    if (bid < 2.00) return 0.50;  // 50L increments
-    if (bid < 5.00) return 1.00;  // 1Cr increments
-    if (bid < 10.00) return 0.50; // 50L increments
-    return 1.00;                   // 1Cr increments
+    if (bid < 0.50) return 0.05;   // 5L increments: 20L→25L→30L→35L→40L→45L
+    if (bid < 1.00) return 0.10;   // 10L increments: 50L→60L→70L→80L→90L
+    if (bid < 2.00) return 0.10;   // 10L increments: 1Cr→1.10Cr→1.20Cr→1.30Cr
+    if (bid < 5.00) return 0.20;   // 20L increments: 2Cr→2.20Cr→2.40Cr
+    if (bid < 10.00) return 0.25;  // 25L increments: 5Cr→5.25Cr→5.50Cr
+    if (bid < 20.00) return 0.50;  // 50L increments: 10Cr→10.50Cr
+    return 1.00;                   // 1Cr increments: 20Cr+
   }
 
   function getNextBid(bid) {
@@ -383,6 +390,7 @@ app.prepare().then(() => {
     room.countdown = room.timerDuration || 10;
     room.countdownText = null;
     room.phase = 'BIDDING';
+    room.tickCount = 0;
     room.bidHistory = [];
 
     io.to(roomCode).emit('room-state', getSerializableRoomState(room));
@@ -396,6 +404,7 @@ app.prepare().then(() => {
   function resolvePlayer(roomCode, forceUnsold = false) {
     const room = activeRooms[roomCode];
     if (!room) return;
+    room.tickCount = 0;
 
     const player = room.currentPlayer;
     const winnerId = room.currentBidderId;
@@ -915,6 +924,7 @@ app.prepare().then(() => {
       room.countdown = room.timerDuration || 10;
       room.countdownText = null;
       room.phase = 'BIDDING'; // return to active bidding phase
+      room.tickCount = 0;
 
       const teamDetails = TEAMS.find(t => t.id === bidderId);
       const entry = {
@@ -1043,6 +1053,15 @@ app.prepare().then(() => {
           room.countdown = room.timerDuration || 10;
           room.countdownText = null;
           room.phase = 'BIDDING'; // ensure it resets resolving state if active
+          room.tickCount = 0;
+          break;
+
+        case 'change-timer':
+          const newDuration = parseInt(extra);
+          if ([5, 10, 15, 20].includes(newDuration)) {
+            room.timerDuration = newDuration;
+            io.to(roomCode).emit('room-state', getSerializableRoomState(room));
+          }
           break;
 
         case 'lock':
