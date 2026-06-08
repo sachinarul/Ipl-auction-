@@ -1,0 +1,194 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// User & Authentications
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  role          String    @default("USER")
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// IPL Mega Auction Overhaul Tables
+// ============================================================
+
+model AuctionRoom {
+  id             String   @id @default(cuid())
+  code           String   @unique
+  name           String
+  type           String   // public or private
+  password       String?
+  status         String   @default("lobby") // lobby, auction, complete
+  adminId        String   // participant socketId/token
+  locked         Boolean  @default(false)
+  paused         Boolean  @default(false)
+  phase          String   @default("WAITING")
+  countdown      Int      @default(10)
+  currentBid     Float    @default(0)
+  currentBidderId String?
+  currentIndex   Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  participants   Participant[]
+  teams          Team[]
+  players        Player[]
+  bids           Bid[]
+  logs           AuctionLog[]
+  messages       ChatMessage[]
+  results        AuctionResult[]
+}
+
+model Participant {
+  id          String   @id @default(cuid())
+  token       String   @unique
+  socketId    String
+  name        String
+  teamId      String?  // Owned team (e.g. 'csk')
+  isReady     Boolean  @default(false)
+  isAdmin     Boolean  @default(false)
+  role        String   @default("spectator") // admin, owner, spectator
+  roomCode    String
+  joinedAt    DateTime @default(now())
+
+  room        AuctionRoom @relation(fields: [roomCode], references: [code], onDelete: Cascade)
+}
+
+model Team {
+  id           String   @id @default(cuid())
+  teamKey      String   // 'mi', 'csk', etc.
+  name         String
+  abbr         String
+  emoji        String
+  primaryColor String
+  purse        Float    @default(120.0)
+  roomCode     String
+
+  room         AuctionRoom @relation(fields: [roomCode], references: [code], onDelete: Cascade)
+}
+
+model Player {
+  id              Int      @id @default(autoincrement())
+  name            String
+  country         String
+  age             Int
+  role            String   // BAT, BOWL, AR, WK
+  subRole         String   // WK-Batsman, Fast-Bowler, etc.
+  category        String   // Marquee, Indian Capped Batsmen, etc.
+  basePrice       Float    // in Cr (e.g. 2.00)
+  battingRating   Int
+  bowlingRating   Int
+  fieldingRating  Int
+  potentialRating Int
+  experienceRating Int
+  formRating      Int
+  overallRating   Int
+  marketValueScore Int      @default(0)
+  matches         Int      @default(0)
+  runs            Int      @default(0)
+  wickets         Int      @default(0)
+  strikeRate      Float    @default(0.0)
+  economy         Float    @default(0.0)
+  popularity      Int      @default(0)
+  auctionStatus   String   @default("AVAILABLE") // AVAILABLE, SOLD, UNSOLD
+  currentTeam     String?  // teamKey
+  soldPrice       Float?
+  roomCode        String?
+
+  room            AuctionRoom? @relation(fields: [roomCode], references: [code], onDelete: Cascade)
+}
+
+model Bid {
+  id           String   @id @default(cuid())
+  amount       Float
+  timestamp    DateTime @default(now())
+  teamId       String   // teamKey
+  roomCode     String
+
+  room         AuctionRoom @relation(fields: [roomCode], references: [code], onDelete: Cascade)
+}
+
+model AuctionLog {
+  id           String   @id @default(cuid())
+  action       String
+  message      String
+  timestamp    DateTime @default(now())
+  roomCode     String
+
+  room         AuctionRoom @relation(fields: [roomCode], references: [code], onDelete: Cascade)
+}
+
+model AuctionResult {
+  id           String   @id @default(cuid())
+  playerName   String
+  soldTo       String   // teamKey
+  price        Float
+  category     String
+  timestamp    DateTime @default(now())
+  roomCode     String
+
+  room         AuctionRoom @relation(fields: [roomCode], references: [code], onDelete: Cascade)
+}
+
+model SavedAuction {
+  id           String   @id @default(cuid())
+  roomCode     String   @unique
+  stateJson    String   @db.Text
+  timestamp    DateTime @default(now())
+}
+
+model Notification {
+  id           String   @id @default(cuid())
+  title        String
+  message      String
+  timestamp    DateTime @default(now())
+  isRead       Boolean  @default(false)
+}
+
+model ChatMessage {
+  id           String   @id @default(cuid())
+  sender       String
+  emoji        String
+  text         String
+  timestamp    DateTime @default(now())
+  roomCode     String
+
+  room         AuctionRoom @relation(fields: [roomCode], references: [code], onDelete: Cascade)
+}

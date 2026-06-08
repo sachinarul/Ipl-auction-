@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+:root {
+  --background: #03010a;
+  --foreground: #e8e8f0;
+  
+  --av-midnight: #03010a;
+  --av-void: #080714;
+  --av-glass: rgba(255, 255, 255, 0.03);
+  --av-glass-hover: rgba(255, 255, 255, 0.07);
+  --av-border: rgba(255, 255, 255, 0.08);
+  --av-border-hover: rgba(255, 255, 255, 0.15);
+  
+  --av-neon-gold: #f5c518;
+  --av-neon-cyan: #00d4ff;
+  --av-neon-green: #00ff88;
+  --av-neon-red: #ff3366;
+  --av-neon-purple: #b44fff;
+  
+  --av-text: #e8e8f0;
+  --av-muted: #6b6b8a;
+}
+
+@theme {
+  --color-midnight: var(--av-midnight);
+  --color-void: var(--av-void);
+  --color-glass: var(--av-glass);
+  --color-glass-hover: var(--av-glass-hover);
+  --color-border-custom: var(--av-border);
+  --color-border-custom-hover: var(--av-border-hover);
+  --color-neon-gold: var(--av-neon-gold);
+  --color-neon-cyan: var(--av-neon-cyan);
+  --color-neon-green: var(--av-neon-green);
+  --color-neon-red: var(--av-neon-red);
+  --color-neon-purple: var(--av-neon-purple);
+  --color-av-text: var(--av-text);
+  --color-av-muted: var(--av-muted);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Custom Utilities for Premium Aesthetics */
+.glass-panel {
+  background: var(--av-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--av-border);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-panel:hover {
+  background: var(--av-glass-hover);
+  border-color: var(--av-border-hover);
+}
+
+.neon-glow-gold {
+  box-shadow: 0 0 15px rgba(245, 197, 24, 0.15);
+  text-shadow: 0 0 8px rgba(245, 197, 24, 0.3);
+}
+
+.neon-glow-cyan {
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.15);
+  text-shadow: 0 0 8px rgba(0, 212, 255, 0.3);
+}
+
+.neon-glow-green {
+  box-shadow: 0 0 15px rgba(0, 255, 136, 0.15);
+  text-shadow: 0 0 8px rgba(0, 255, 136, 0.3);
+}
+
+.neon-glow-red {
+  box-shadow: 0 0 15px rgba(255, 51, 102, 0.15);
+  text-shadow: 0 0 8px rgba(255, 51, 102, 0.3);
+}
+
+.neon-glow-purple {
+  box-shadow: 0 0 15px rgba(180, 79, 255, 0.15);
+  text-shadow: 0 0 8px rgba(180, 79, 255, 0.3);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
