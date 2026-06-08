@@ -10,6 +10,8 @@ interface AuctionStatsModalProps {
   pool: Player[];
   currentIndex: number;
   teams: Team[];
+  isAdmin?: boolean;
+  onReintroduce?: (playerId: number) => void;
 }
 
 type TabType = 'UPCOMING' | 'SOLD' | 'UNSOLD' | 'FRANCHISES' | 'ANALYTICS';
@@ -20,6 +22,8 @@ export default function AuctionStatsModal({
   pool,
   currentIndex,
   teams,
+  isAdmin = false,
+  onReintroduce,
 }: AuctionStatsModalProps) {
   const [activeTab, setActiveTab] = useState<TabType>('UPCOMING');
 
@@ -279,36 +283,54 @@ export default function AuctionStatsModal({
               >
                 {unsoldPlayers.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {unsoldPlayers.map(player => (
-                      <div
-                        key={player.id}
-                        className="bg-void/40 border border-white/5 p-3 rounded-xl flex items-center justify-between"
-                      >
-                        <div className="space-y-1">
-                          <div className="flex items-center space-x-1.5">
-                            <span className="text-base leading-none">{player.flag}</span>
-                            <span className="text-xs font-black text-white uppercase truncate max-w-[140px]">
-                              {player.name}
+                    {unsoldPlayers.map(player => {
+                      const isAlreadyQueued = pool.slice(currentIndex).some(p => p.id === player.id);
+                      return (
+                        <div
+                          key={player.id}
+                          className="bg-void/40 border border-white/5 p-3 rounded-xl flex items-center justify-between"
+                        >
+                          <div className="space-y-1">
+                            <div className="flex items-center space-x-1.5">
+                              <span className="text-base leading-none">{player.flag}</span>
+                              <span className="text-xs font-black text-white uppercase truncate max-w-[140px]">
+                                {player.name}
+                              </span>
+                              {player.overseas && (
+                                <span className="text-[8px] px-1 bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/20 rounded font-black">
+                                  OS
+                                </span>
+                              )}
+                            </div>
+                            <span className={`inline-block text-[9px] font-bold uppercase px-2 py-0.5 rounded border ${getRoleClass(player.role)}`}>
+                              {getRoleLabel(player.role)}
                             </span>
-                            {player.overseas && (
-                              <span className="text-[8px] px-1 bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/20 rounded font-black">
-                                OS
+                          </div>
+
+                          <div className="text-right shrink-0 flex flex-col items-end gap-1">
+                            {isAdmin ? (
+                              isAlreadyQueued ? (
+                                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-neon-gold/15 text-neon-gold border border-neon-gold/20">
+                                  Reintroduced
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => onReintroduce && onReintroduce(player.id)}
+                                  className="text-[10px] font-bold bg-neon-gold text-midnight hover:bg-neon-gold/80 px-2 py-1 rounded transition-colors duration-200"
+                                >
+                                  Reintroduce
+                                </button>
+                              )
+                            ) : (
+                              <span className="text-xs font-bold text-neon-red bg-neon-red/5 px-2.5 py-1 rounded border border-neon-red/15">
+                                UNSOLD
                               </span>
                             )}
+                            <span className="text-[9px] text-av-muted block">Base: {formatCr(player.basePrice)}</span>
                           </div>
-                          <span className={`inline-block text-[9px] font-bold uppercase px-2 py-0.5 rounded border ${getRoleClass(player.role)}`}>
-                            {getRoleLabel(player.role)}
-                          </span>
                         </div>
-
-                        <div className="text-right shrink-0">
-                          <span className="text-xs font-bold text-neon-red bg-neon-red/5 px-2.5 py-1 rounded border border-neon-red/15">
-                            UNSOLD
-                          </span>
-                          <span className="text-[9px] text-av-muted block mt-1">Base: {formatCr(player.basePrice)}</span>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-16 text-av-muted">

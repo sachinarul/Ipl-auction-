@@ -25,6 +25,8 @@ interface AuctionStore {
   timerDuration: number;
   enableAITeams: boolean;
   minPlayersToStart: number;
+  setOrder: string[];
+  disabledSets: string[];
   
   // Game data sync
   teams: Team[];
@@ -82,6 +84,8 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
   timerDuration: 10,
   enableAITeams: false,
   minPlayersToStart: 1,
+  setOrder: [],
+  disabledSets: [],
   
   teams: [],
   currentPlayer: null,
@@ -148,6 +152,8 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
         currentIndex: state.currentIndex || 0,
         enableAITeams: state.enableAITeams || false,
         minPlayersToStart: state.minPlayersToStart || 1,
+        setOrder: state.setOrder || [],
+        disabledSets: state.disabledSets || [],
         isAdmin: me ? me.isAdmin : false,
         isReady: me ? me.isReady : false,
         userTeamId: me ? me.teamId : null

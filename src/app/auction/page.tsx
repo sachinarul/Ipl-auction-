@@ -197,6 +197,18 @@ export default function AuctionArena() {
     lastPhase.current = phase;
   }, [phase, countdownText, currentPlayer, currentBidderId, currentBid]);
 
+  const lastAnnouncementText = useRef<string | null>(null);
+  useEffect(() => {
+    if (phase === 'SET_ANNOUNCEMENT' && countdownText && countdownText !== lastAnnouncementText.current) {
+      lastAnnouncementText.current = countdownText;
+      const displayName = countdownText.replace(/^SET\s+\d+:\s+/, "");
+      speak(`Now entering: ${displayName.toLowerCase()}`);
+    }
+    if (phase !== 'SET_ANNOUNCEMENT') {
+      lastAnnouncementText.current = null;
+    }
+  }, [phase, countdownText]);
+
   // Scroll chat to bottom
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -1242,7 +1254,35 @@ export default function AuctionArena() {
             pool={playerQueue}
             currentIndex={currentIndex}
             teams={teams}
+            isAdmin={isAdmin}
+            onReintroduce={(playerId) => triggerAdminAction('reintroduce', [playerId])}
           />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {phase === 'SET_ANNOUNCEMENT' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/95 flex flex-col items-center justify-center text-center z-50 backdrop-blur-md"
+          >
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              className="space-y-4 flex flex-col items-center"
+            >
+              <span className="text-xs uppercase font-extrabold tracking-widest text-neon-gold bg-neon-gold/10 border border-neon-gold/20 px-4 py-1.5 rounded-full">
+                Now Entering
+              </span>
+              <h1 className="text-4xl sm:text-6xl font-black text-white tracking-wide uppercase mt-4 max-w-2xl px-6 neon-glow-gold">
+                {countdownText ? countdownText.replace(/^SET\s+\d+:\s+/, "") : ""}
+              </h1>
+              <div className="w-24 h-1 bg-neon-gold mx-auto mt-6 rounded-full opacity-60 animate-pulse" />
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

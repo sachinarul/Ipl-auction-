@@ -31,7 +31,9 @@ export default function RoomLobby() {
     enableAITeams,
     minPlayersToStart,
     getRoomInfo,
-    timerDuration
+    timerDuration,
+    setOrder,
+    disabledSets
   } = useAuctionStore();
 
   // Input states for join gate
@@ -456,6 +458,105 @@ export default function RoomLobby() {
                 <Share2 className="h-4 w-4" />
                 <span>Share via WhatsApp</span>
               </button>
+            </div>
+          </div>
+
+          {/* Configure Auction Sets Card */}
+          <div className="glass-panel rounded-2xl p-6 space-y-4">
+            <h3 className="text-xs uppercase font-extrabold tracking-widest text-neon-gold border-b border-border-custom pb-3 flex items-center justify-between">
+              <span>⚙️ Auction Sets Configuration</span>
+              {isAdmin && <span className="text-[8px] bg-neon-gold/15 text-neon-gold px-1.5 py-0.5 rounded uppercase font-black">Admin Mode</span>}
+            </h3>
+            
+            <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
+              {(setOrder && setOrder.length > 0 ? setOrder : [
+                'SET 1: Marquee Players',
+                'SET 2: Capped Indian Batsmen',
+                'SET 3: Overseas Batsmen',
+                'SET 4: Capped Indian Wicketkeepers',
+                'SET 5: Overseas Wicketkeepers',
+                'SET 6: Indian All-Rounders',
+                'SET 7: Overseas All-Rounders',
+                'SET 8: Indian Fast Bowlers',
+                'SET 9: Overseas Fast Bowlers',
+                'SET 10: Indian Spinners',
+                'SET 11: Overseas Spinners',
+                'SET 12: Emerging Players',
+                'SET 13: Uncapped Players'
+              ]).map((setName, index) => {
+                const isSetDisabled = disabledSets && disabledSets.includes(setName);
+                return (
+                  <div 
+                    key={setName} 
+                    className={`flex items-center justify-between p-2.5 rounded-xl border text-xs transition-all duration-200 ${
+                      isSetDisabled 
+                        ? 'border-void bg-void/30 opacity-40' 
+                        : 'border-white/5 bg-void/50'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <span className="text-[10px] font-black text-av-muted">#{index + 1}</span>
+                      <span className={`font-bold ${isSetDisabled ? 'line-through text-av-muted' : 'text-white'}`}>
+                        {setName.replace(/^SET\s+\d+:\s+/, '')}
+                      </span>
+                    </div>
+
+                    {isAdmin ? (
+                      <div className="flex items-center space-x-1">
+                        <button 
+                          disabled={index === 0} 
+                          onClick={() => {
+                            const newOrder = [...setOrder];
+                            const temp = newOrder[index];
+                            newOrder[index] = newOrder[index - 1];
+                            newOrder[index - 1] = temp;
+                            triggerAdminAction('update-sets', { setOrder: newOrder, disabledSets });
+                          }}
+                          className="p-1 rounded bg-glass border border-white/5 hover:border-neon-gold hover:text-neon-gold text-white disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          ▲
+                        </button>
+                        <button 
+                          disabled={index === setOrder.length - 1} 
+                          onClick={() => {
+                            const newOrder = [...setOrder];
+                            const temp = newOrder[index];
+                            newOrder[index] = newOrder[index + 1];
+                            newOrder[index + 1] = temp;
+                            triggerAdminAction('update-sets', { setOrder: newOrder, disabledSets });
+                          }}
+                          className="p-1 rounded bg-glass border border-white/5 hover:border-neon-gold hover:text-neon-gold text-white disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          ▼
+                        </button>
+                        <button 
+                          onClick={() => {
+                            const newDisabled = isSetDisabled 
+                              ? disabledSets.filter(s => s !== setName) 
+                              : [...disabledSets, setName];
+                            triggerAdminAction('update-sets', { setOrder, disabledSets: newDisabled });
+                          }}
+                          className={`px-1.5 py-1 rounded text-[10px] font-bold uppercase transition-all ${
+                            isSetDisabled 
+                              ? 'bg-neon-red/10 border border-neon-red/30 text-neon-red' 
+                              : 'bg-neon-green/10 border border-neon-green/30 text-neon-green'
+                          }`}
+                        >
+                          {isSetDisabled ? 'OFF' : 'ON'}
+                        </button>
+                      </div>
+                    ) : (
+                      <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${
+                        isSetDisabled 
+                          ? 'bg-neon-red/10 text-neon-red border border-neon-red/20' 
+                          : 'bg-neon-green/10 text-neon-green border border-neon-green/20'
+                      }`}>
+                        {isSetDisabled ? 'Disabled' : 'Enabled'}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

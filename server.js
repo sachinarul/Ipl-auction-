@@ -37,43 +37,40 @@ const TEAMS = [
   { id: 'lsg', name: 'Lucknow Super Giants', abbr: 'LSG', emoji: '🩵', primaryColor: '#00ADEF', strategy: 'balanced' }
 ];
 
-// V3: 16-Set category ordering
+// V3: New IPL structured player sets
 const SET_ORDER = [
   'SET 1: Marquee Players',
-  'SET 2: Capped Indian Batters',
-  'SET 3: Capped Indian All-Rounders',
+  'SET 2: Capped Indian Batsmen',
+  'SET 3: Overseas Batsmen',
   'SET 4: Capped Indian Wicketkeepers',
-  'SET 5: Capped Indian Fast Bowlers',
-  'SET 6: Capped Indian Spinners',
-  'SET 7: Uncapped Indian Batters',
-  'SET 8: Uncapped Indian All-Rounders',
-  'SET 9: Uncapped Indian Wicketkeepers',
-  'SET 10: Uncapped Indian Bowlers',
-  'SET 11: Overseas Batters',
-  'SET 12: Overseas All-Rounders',
-  'SET 13: Overseas Wicketkeepers',
-  'SET 14: Overseas Fast Bowlers',
-  'SET 15: Overseas Spinners',
-  'SET 16: Accelerated Auction Players',
+  'SET 5: Overseas Wicketkeepers',
+  'SET 6: Indian All-Rounders',
+  'SET 7: Overseas All-Rounders',
+  'SET 8: Indian Fast Bowlers',
+  'SET 9: Overseas Fast Bowlers',
+  'SET 10: Indian Spinners',
+  'SET 11: Overseas Spinners',
+  'SET 12: Emerging Players',
+  'SET 13: Uncapped Players',
 ];
 
-// V3: Map old categories to new 16-set categories
+// V3: Map old categories to new dynamic set categories
 const CATEGORY_REMAP = {
   'Marquee Players': 'SET 1: Marquee Players',
-  'Indian Capped Batsmen': 'SET 2: Capped Indian Batters',
-  'Indian All Rounders': 'SET 3: Capped Indian All-Rounders',
+  'Indian Capped Batsmen': 'SET 2: Capped Indian Batsmen',
+  'Overseas Batsmen': 'SET 3: Overseas Batsmen',
   'Indian Capped Wicket Keepers': 'SET 4: Capped Indian Wicketkeepers',
-  'Indian Fast Bowlers': 'SET 5: Capped Indian Fast Bowlers',
-  'Indian Spinners': 'SET 6: Capped Indian Spinners',
-  'Indian Uncapped Batsmen': 'SET 7: Uncapped Indian Batters',
-  'Emerging Players': 'SET 7: Uncapped Indian Batters',
-  'Indian Uncapped Wicket Keepers': 'SET 9: Uncapped Indian Wicketkeepers',
-  'Overseas Batsmen': 'SET 11: Overseas Batters',
-  'Overseas Pace All Rounders': 'SET 12: Overseas All-Rounders',
-  'Overseas Spin All Rounders': 'SET 12: Overseas All-Rounders',
-  'Overseas Wicket Keepers': 'SET 13: Overseas Wicketkeepers',
-  'Overseas Fast Bowlers': 'SET 14: Overseas Fast Bowlers',
-  'Overseas Spinners': 'SET 15: Overseas Spinners',
+  'Overseas Wicket Keepers': 'SET 5: Overseas Wicketkeepers',
+  'Indian All Rounders': 'SET 6: Indian All-Rounders',
+  'Overseas Pace All Rounders': 'SET 7: Overseas All-Rounders',
+  'Overseas Spin All Rounders': 'SET 7: Overseas All-Rounders',
+  'Indian Fast Bowlers': 'SET 8: Indian Fast Bowlers',
+  'Overseas Fast Bowlers': 'SET 9: Overseas Fast Bowlers',
+  'Indian Spinners': 'SET 10: Indian Spinners',
+  'Overseas Spinners': 'SET 11: Overseas Spinners',
+  'Emerging Players': 'SET 12: Emerging Players',
+  'Indian Uncapped Batsmen': 'SET 13: Uncapped Players',
+  'Indian Uncapped Wicket Keepers': 'SET 13: Uncapped Players',
 };
 
 app.prepare().then(() => {
@@ -355,6 +352,8 @@ app.prepare().then(() => {
       teams: Object.values(room.teams),
       enableAITeams: room.enableAITeams,
       minPlayersToStart: room.minPlayersToStart,
+      setOrder: room.setOrder || [],
+      disabledSets: room.disabledSets || [],
       playerQueue: room.playerQueue ? room.playerQueue.map(p => ({
         id: p.id,
         name: p.name,
@@ -384,10 +383,46 @@ app.prepare().then(() => {
     }
 
     const player = room.playerQueue[room.currentIndex];
+    
+    // V3: Category transition check
+    const prevCategory = room.currentCategory;
+    const newCategory = player.category;
+
+    if (prevCategory !== newCategory) {
+      room.currentCategory = newCategory;
+      room.currentPlayer = player;
+      room.phase = 'SET_ANNOUNCEMENT';
+      room.countdownText = newCategory;
+      room.countdown = 4;
+
+      io.to(roomCode).emit('room-state', getSerializableRoomState(room));
+
+      // Delay actual bidding starts by 4 seconds for screen announcement overlay
+      setTimeout(() => {
+        const currentRoom = activeRooms[roomCode];
+        if (!currentRoom || currentRoom.phase !== 'SET_ANNOUNCEMENT' || currentRoom.currentIndex !== room.currentIndex) return;
+
+        currentRoom.currentBid = player.basePrice;
+        currentRoom.currentBidderId = null;
+        currentRoom.countdown = player.isAccelerated ? 5 : (currentRoom.timerDuration || 10);
+        currentRoom.countdownText = null;
+        currentRoom.phase = 'BIDDING';
+        currentRoom.tickCount = 0;
+        currentRoom.bidHistory = [];
+
+        io.to(roomCode).emit('room-state', getSerializableRoomState(currentRoom));
+
+        // Schedule AI Bidding round checking
+        setTimeout(() => runAIRound(roomCode), player.isAccelerated ? 500 : 1500);
+      }, 4000);
+
+      return;
+    }
+
     room.currentPlayer = player;
     room.currentBid = player.basePrice;
     room.currentBidderId = null;
-    room.countdown = room.timerDuration || 10;
+    room.countdown = player.isAccelerated ? 5 : (room.timerDuration || 10);
     room.countdownText = null;
     room.phase = 'BIDDING';
     room.tickCount = 0;
@@ -396,7 +431,7 @@ app.prepare().then(() => {
     io.to(roomCode).emit('room-state', getSerializableRoomState(room));
 
     // Schedule AI Bidding round checking
-    setTimeout(() => runAIRound(roomCode), 1500);
+    setTimeout(() => runAIRound(roomCode), player.isAccelerated ? 500 : 1500);
   }
 
   // ─── Resolve Player (SOLD / UNSOLD) ─────────────────────────────────────
@@ -538,8 +573,8 @@ app.prepare().then(() => {
         room.currentBid = nextBid;
         room.currentBidderId = randomTeamId;
 
-        // Reset countdown to configured duration
-        room.countdown = room.timerDuration || 10;
+        // Reset countdown to configured duration (5s for accelerated)
+        room.countdown = room.currentPlayer.isAccelerated ? 5 : (room.timerDuration || 10);
         room.countdownText = null;
         room.phase = 'BIDDING';
 
@@ -573,8 +608,9 @@ app.prepare().then(() => {
           roomState: getSerializableRoomState(room)
         });
 
-        // Re-schedule next check
-        setTimeout(() => runAIRound(roomCode), 1200 + Math.random() * 1500);
+        // Re-schedule next check (faster for accelerated player rounds)
+        const delay = room.currentPlayer.isAccelerated ? (400 + Math.random() * 600) : (1200 + Math.random() * 1500);
+        setTimeout(() => runAIRound(roomCode), delay);
       }
     }
   }
@@ -757,6 +793,9 @@ app.prepare().then(() => {
         currentBidderId: null,
         bidHistory: [],
         playerQueue,
+        playersData,
+        setOrder: [...SET_ORDER],
+        disabledSets: [],
         currentIndex: 0,
         participants: [{
           socketId: socket.id,
@@ -921,7 +960,7 @@ app.prepare().then(() => {
       // Save bid
       room.currentBid = nextBidAmount;
       room.currentBidderId = bidderId;
-      room.countdown = room.timerDuration || 10;
+      room.countdown = room.currentPlayer.isAccelerated ? 5 : (room.timerDuration || 10);
       room.countdownText = null;
       room.phase = 'BIDDING'; // return to active bidding phase
       room.tickCount = 0;
@@ -1021,6 +1060,19 @@ app.prepare().then(() => {
               }
             });
 
+            // Rebuild playerQueue using setOrder and disabledSets config
+            const setOrder = room.setOrder || [...SET_ORDER];
+            const disabledSets = room.disabledSets || [];
+            const playerQueue = [];
+            setOrder.forEach(set => {
+              if (disabledSets.includes(set)) return;
+              const setPlayers = room.playersData.filter(p => p.category === set).sort(() => Math.random() - 0.5);
+              playerQueue.push(...setPlayers);
+            });
+            room.playerQueue = playerQueue;
+            room.currentIndex = 0;
+            room.currentCategory = null;
+
             loadNextPlayer(roomCode);
           }
           break;
@@ -1094,6 +1146,7 @@ app.prepare().then(() => {
           room.currentBid = 0;
           room.currentBidderId = null;
           room.bidHistory = [];
+          room.currentCategory = null;
           Object.keys(room.teams).forEach(id => {
             room.teams[id].purse = 120.0;
             room.teams[id].squad = [];
@@ -1105,26 +1158,41 @@ app.prepare().then(() => {
           room.phase = 'COMPLETE';
           break;
 
-        // V3: Reintroduce unsold players as SET 16 Accelerated Auction Players
+        // V3: Reintroduce unsold players as SET 15: Unsold Round Reintroduction
         case 'reintroduce':
-          if (extra && Array.isArray(extra) && extra.length > 0) {
-            // Collect unsold players from the queue that match the given IDs
-            const unsoldFromQueue = room.playerQueue.filter(p =>
-              extra.includes(p.id) && p.category === 'Unsold Pool'
-            ).map(p => ({ ...p, category: 'SET 16: Accelerated Auction Players' }));
+          if (extra) {
+            const targetIds = Array.isArray(extra) ? extra : [parseInt(extra)];
+            if (targetIds.length > 0) {
+              // Collect unsold players from the queue that match the given IDs
+              const unsoldFromQueue = room.playerQueue.filter(p =>
+                targetIds.includes(p.id) && p.category === 'Unsold Pool'
+              ).map(p => ({
+                ...p,
+                category: 'SET 15: Unsold Round Reintroduction',
+                isAccelerated: true,
+                isUnsoldReintro: true
+              }));
 
-            if (unsoldFromQueue.length > 0) {
-              // Remove the old 'Unsold Pool' entries from the queue
-              room.playerQueue = room.playerQueue.filter(p =>
-                !(extra.includes(p.id) && p.category === 'Unsold Pool')
-              );
-              // Append them at the end as SET 16
-              room.playerQueue.push(...unsoldFromQueue);
-              // Jump currentIndex to the first reintroduced player
-              room.currentIndex = room.playerQueue.length - unsoldFromQueue.length;
-              room.status = 'auction';
-              loadNextPlayer(roomCode);
+              if (unsoldFromQueue.length > 0) {
+                // Remove the old 'Unsold Pool' entries from the queue
+                room.playerQueue = room.playerQueue.filter(p =>
+                  !(targetIds.includes(p.id) && p.category === 'Unsold Pool')
+                );
+                // Append them at the end
+                room.playerQueue.push(...unsoldFromQueue);
+                // Jump currentIndex to the first reintroduced player
+                room.currentIndex = room.playerQueue.length - unsoldFromQueue.length;
+                room.status = 'auction';
+                loadNextPlayer(roomCode);
+              }
             }
+          }
+          break;
+
+        case 'update-sets':
+          if (extra) {
+            room.setOrder = extra.setOrder || room.setOrder || [...SET_ORDER];
+            room.disabledSets = extra.disabledSets || room.disabledSets || [];
           }
           break;
       }

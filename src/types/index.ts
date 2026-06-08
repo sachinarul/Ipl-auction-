@@ -3,7 +3,7 @@
 // ============================================================
 
 export type PlayerRole = 'BAT' | 'BOWL' | 'AR' | 'WK';
-export type AuctionPhase = 'WAITING' | 'COUNTDOWN' | 'BIDDING' | 'RESOLVING' | 'SOLD' | 'UNSOLD' | 'COMPLETE';
+export type AuctionPhase = 'WAITING' | 'COUNTDOWN' | 'BIDDING' | 'RESOLVING' | 'SOLD' | 'UNSOLD' | 'COMPLETE' | 'SET_ANNOUNCEMENT';
 export type AIPersonality = 'aggressive' | 'conservative' | 'balanced' | 'youth-focused' | 'star-hunter';
 export type TeamId = 'mi' | 'csk' | 'rcb' | 'kkr' | 'dc' | 'srh' | 'rr' | 'pbks' | 'gt' | 'lsg';
 
