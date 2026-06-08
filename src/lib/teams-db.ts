@@ -107,6 +107,6 @@ export function cloneTeams(): Team[] {
     squad: [],
     purse: 120,
     rtmCards: 2,
-    targets: { ...t.targets },
+    targets: t.targets ? { ...t.targets } : undefined,
   }));
 }

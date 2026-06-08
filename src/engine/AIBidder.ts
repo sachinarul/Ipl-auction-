@@ -90,8 +90,8 @@ export function getAIDecision(
   if (team.purse - nextBid < reserve)
     return { shouldBid: false, reason: 'protecting_reserve' };
 
-  // Role need
-  const roleTarget = team.targets[player.role] ?? 3;
+  // Role need (targets is optional in V3 Team type)
+  const roleTarget = team.targets?.[player.role] ?? 3;
   const currentRoleCount = getRoleCount(team.squad, player.role);
   const roleNeed = Math.max(0, (roleTarget - currentRoleCount) / roleTarget);
 

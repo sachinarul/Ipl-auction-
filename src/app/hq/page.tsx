@@ -5,12 +5,12 @@ import { PlayerRole } from '@/types';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ShieldAlert, ArrowRight, User, Users, Landmark, Coins, Award, Sparkles, CheckCircle } from 'lucide-react';
+import { ShieldAlert, ArrowRight, User, Users, Landmark, Coins, Award, Sparkles, CheckCircle, Trophy } from 'lucide-react';
 import Navbar from '@/components/shared/Navbar';
 
 export default function FranchiseHQ() {
   const router = useRouter();
-  const { userTeamId, teams } = useAuctionStore();
+  const { userTeamId, teams, phase } = useAuctionStore();
   const [roleFilter, setRoleFilter] = useState<'ALL' | PlayerRole>('ALL');
 
   // Redirect if no team selected
@@ -138,6 +138,50 @@ export default function FranchiseHQ() {
             </div>
           </div>
         </motion.div>
+
+        {/* Post-Auction Franchise Report */}
+        {squad.length > 0 && (
+          <div className="glass-panel rounded-2xl p-6 bg-gradient-to-r from-neon-gold/5 to-transparent border border-neon-gold/20">
+            <h3 className="text-sm font-black uppercase tracking-wider text-neon-gold flex items-center gap-2 mb-4">
+              <Trophy className="h-4 w-4" />
+              FRANCHISE REPORT
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              {(() => {
+                const topBuy = [...squad].sort((a, b) => (b.soldPrice || 0) - (a.soldPrice || 0))[0];
+                return (
+                  <div className="bg-void/30 p-3 rounded-xl border border-white/5">
+                    <div className="text-av-muted uppercase font-bold tracking-wider text-[9px] mb-1">Top Buy</div>
+                    <div className="font-black text-white truncate text-xs">{topBuy?.name || 'N/A'}</div>
+                    <div className="text-neon-gold font-bold mt-0.5">{topBuy ? `₹${topBuy.soldPrice?.toFixed(2)} Cr` : ''}</div>
+                  </div>
+                );
+              })()}
+              {(() => {
+                const bestValue = [...squad].filter(p => p.soldPrice && p.soldPrice > 0).sort((a, b) => (b.overall / (b.soldPrice || 1)) - (a.overall / (a.soldPrice || 1)))[0];
+                return bestValue ? (
+                  <div className="bg-void/30 p-3 rounded-xl border border-white/5">
+                    <div className="text-av-muted uppercase font-bold tracking-wider text-[9px] mb-1">Best Value</div>
+                    <div className="font-black text-white truncate text-xs">{bestValue.name}</div>
+                    <div className="text-neon-green font-bold mt-0.5">OVR {bestValue.overall}</div>
+                  </div>
+                ) : null;
+              })()}
+              <div className="bg-void/30 p-3 rounded-xl border border-white/5">
+                <div className="text-av-muted uppercase font-bold tracking-wider text-[9px] mb-1">Squad OVR</div>
+                <div className="font-black text-2xl text-neon-gold">
+                  {Math.round(squad.reduce((s, p) => s + p.overall, 0) / squad.length)}
+                </div>
+                <div className="text-av-muted text-[9px]">Avg Rating</div>
+              </div>
+              <div className="bg-void/30 p-3 rounded-xl border border-white/5">
+                <div className="text-av-muted uppercase font-bold tracking-wider text-[9px] mb-1">Total Spent</div>
+                <div className="font-black text-neon-red text-sm">₹{totalSpent.toFixed(2)} Cr</div>
+                <div className="text-av-muted text-[9px]">{squad.length} players</div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Dynamic Engine alerts */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -268,37 +312,70 @@ export default function FranchiseHQ() {
                     <th className="pb-3 font-semibold">Player</th>
                     <th className="pb-3 font-semibold">Role</th>
                     <th className="pb-3 font-semibold text-center">OVR</th>
-                    <th className="pb-3 font-semibold text-center">Batting</th>
-                    <th className="pb-3 font-semibold text-center">Bowling</th>
-                    <th className="pb-3 font-semibold text-right">Sold Price</th>
+                    <th className="pb-3 font-semibold text-center hidden md:table-cell">Matches</th>
+                    <th className="pb-3 font-semibold text-center hidden md:table-cell">Career Stats</th>
+                    <th className="pb-3 font-semibold hidden lg:table-cell">Style</th>
+                    <th className="pb-3 font-semibold text-right">Sold</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-custom/50">
                   {filteredSquad.map((player) => (
                     <tr key={player.id} className="hover:bg-white/2 transition-colors duration-200">
-                      <td className="py-3 font-bold text-white flex items-center space-x-2">
-                        <span>{player.flag}</span>
-                        <span className="uppercase tracking-wide">{player.name}</span>
-                        {player.overseas && (
-                          <span className="text-[9px] px-1 bg-neon-cyan/20 text-neon-cyan rounded font-bold uppercase">
-                            OS
-                          </span>
-                        )}
+                      <td className="py-3">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-base">{player.flag}</span>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-white uppercase tracking-wide text-xs">{player.name}</span>
+                              {player.overseas && (
+                                <span className="text-[8px] px-1 bg-neon-cyan/20 text-neon-cyan rounded font-bold uppercase">OS</span>
+                              )}
+                            </div>
+                            {(player as any).iplExperience && (
+                              <div className="text-[9px] text-av-muted">{(player as any).iplExperience}</div>
+                            )}
+                          </div>
+                        </div>
                       </td>
                       <td className="py-3">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          player.role === 'BAT' ? 'bg-neon-cyan/10 text-neon-cyan' :
-                          player.role === 'BOWL' ? 'bg-neon-red/10 text-neon-red' :
-                          player.role === 'WK' ? 'bg-neon-gold/10 text-neon-gold' :
-                          'bg-neon-purple/10 text-neon-purple'
-                        }`}>
-                          {player.role}
-                        </span>
+                        <div>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            player.role === 'BAT' ? 'bg-neon-cyan/10 text-neon-cyan' :
+                            player.role === 'BOWL' ? 'bg-neon-red/10 text-neon-red' :
+                            player.role === 'WK' ? 'bg-neon-gold/10 text-neon-gold' :
+                            'bg-neon-purple/10 text-neon-purple'
+                          }`}>
+                            {player.role}
+                          </span>
+                          {(player as any).subRole && (
+                            <div className="text-[9px] text-av-muted mt-0.5">{(player as any).subRole}</div>
+                          )}
+                        </div>
                       </td>
-                      <td className="py-3 text-center font-bold text-neon-gold">{player.overall}</td>
-                      <td className="py-3 text-center">{player.batting}</td>
-                      <td className="py-3 text-center">{player.bowling}</td>
-                      <td className="py-3 text-right font-extrabold text-neon-green">
+                      <td className="py-3 text-center font-bold text-neon-gold text-sm">{player.overall}</td>
+                      <td className="py-3 text-center hidden md:table-cell text-av-text text-xs">
+                        {(player as any).matches || '-'}
+                      </td>
+                      <td className="py-3 text-center hidden md:table-cell">
+                        {player.role === 'BOWL' ? (
+                          <div>
+                            <div className="text-xs font-bold text-neon-red">{(player as any).wickets || 0} wkts</div>
+                            <div className="text-[9px] text-av-muted">Eco: {((player as any).economy)?.toFixed(2) || 'N/A'}</div>
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="text-xs font-bold text-neon-cyan">{(player as any).runs || 0} runs</div>
+                            <div className="text-[9px] text-av-muted">SR: {((player as any).strikeRate)?.toFixed(1) || 'N/A'}</div>
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-3 hidden lg:table-cell">
+                        <div className="text-[9px] text-av-muted space-y-0.5">
+                          {(player as any).battingStyle && <div>🪦 {(player as any).battingStyle}</div>}
+                          {(player as any).bowlingStyle && (player as any).bowlingStyle !== 'N/A' && <div>🏏 {(player as any).bowlingStyle}</div>}
+                        </div>
+                      </td>
+                      <td className="py-3 text-right font-extrabold text-neon-green text-xs">
                         ₹{player.soldPrice?.toFixed(2)} Cr
                       </td>
                     </tr>

@@ -1,5 +1,5 @@
 // ============================================================
-// AuctionVerse Cricket — Core TypeScript Types
+// AuctionVerse Cricket — Core TypeScript Types V3
 // ============================================================
 
 export type PlayerRole = 'BAT' | 'BOWL' | 'AR' | 'WK';
@@ -15,21 +15,32 @@ export interface Player {
   overseas: boolean;
   capped: boolean;
   role: PlayerRole;
+  subRole?: string;
   age: number;
-  basePrice: number; // in Cr
+  basePrice: number;      // in Cr
   soldPrice: number | null;
   currentTeam: TeamId | null;
-  batting: number;   // 0-99
-  bowling: number;   // 0-99
-  fielding: number;  // 0-99
-  potential: number; // 0-99
-  form: number;      // 0-99
-  experience: number;// 0-99
-  overall: number;   // computed
-  fitness: number;   // 0-99
-  popularity: number;// 0-99  (hype/demand indicator)
-  marketValueScore: number; // 0-99 computed metric
+  batting: number;        // 0-99
+  bowling: number;        // 0-99
+  fielding: number;       // 0-99
+  potential: number;      // 0-99
+  form: number;           // 0-99
+  experience: number;     // 0-99
+  overall: number;        // computed
+  fitness: number;        // 0-99
+  popularity: number;     // 0-99
+  marketValueScore: number;
   category?: string;
+  // Expanded V3 profile fields
+  battingStyle?: string;
+  bowlingStyle?: string;
+  matches?: number;
+  runs?: number;
+  wickets?: number;
+  strikeRate?: number;
+  economy?: number;
+  iplExperience?: string;
+  photo?: string;
 }
 
 export interface Team {
@@ -38,15 +49,17 @@ export interface Team {
   abbr: string;
   emoji: string;
   primaryColor: string;
-  secondaryColor: string;
-  gradientFrom: string;
-  gradientTo: string;
-  purse: number;    // remaining in Cr
+  secondaryColor?: string;
+  gradientFrom?: string;
+  gradientTo?: string;
+  purse: number;          // remaining in Cr
   squad: Player[];
-  rtmCards: number;
+  rtmCards?: number;
   strategy: AIPersonality;
-  targets: Record<PlayerRole, number>;
-  isUserControlled: boolean;
+  targets?: Record<PlayerRole, number>;
+  isUserControlled?: boolean;
+  isHuman?: boolean;
+  controllerName?: string | null;
 }
 
 export interface BidEntry {
@@ -57,12 +70,12 @@ export interface BidEntry {
   teamEmoji: string;
   amount: number;
   timestamp: number;
-  isUser: boolean;
+  isUser?: boolean;
 }
 
 export interface AuctionState {
   phase: AuctionPhase;
-  pool: Player[];          // all players to auction
+  pool: Player[];
   currentIndex: number;
   currentPlayer: Player | null;
   currentBid: number;

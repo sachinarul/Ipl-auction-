@@ -12,7 +12,7 @@ interface AuctionStatsModalProps {
   teams: Team[];
 }
 
-type TabType = 'UPCOMING' | 'SOLD' | 'UNSOLD' | 'FRANCHISES';
+type TabType = 'UPCOMING' | 'SOLD' | 'UNSOLD' | 'FRANCHISES' | 'ANALYTICS';
 
 export default function AuctionStatsModal({
   isOpen,
@@ -113,7 +113,7 @@ export default function AuctionStatsModal({
         <div className="p-5 border-b border-border-custom flex justify-between items-center bg-void/50 shrink-0">
           <div className="flex items-center space-x-3">
             <Trophy className="h-5 w-5 text-neon-gold" />
-            <h2 className="text-lg font-black text-white uppercase tracking-wider">Auction Stats board</h2>
+            <h2 className="text-lg font-black text-white uppercase tracking-wider">IPL Auction Command Center</h2>
           </div>
           <button
             onClick={onClose}
@@ -129,7 +129,8 @@ export default function AuctionStatsModal({
             { id: 'UPCOMING', label: `Upcoming (${upcomingPlayers.length})` },
             { id: 'SOLD', label: `Sold (${soldPlayers.length})` },
             { id: 'UNSOLD', label: `Unsold (${unsoldPlayers.length})` },
-            { id: 'FRANCHISES', label: 'Leaderboard' }
+            { id: 'FRANCHISES', label: 'Leaderboard' },
+            { id: 'ANALYTICS', label: 'Analytics 📊' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -377,6 +378,109 @@ export default function AuctionStatsModal({
                     );
                   })}
                 </div>
+              </motion.div>
+            )}
+
+            {/* 5. ANALYTICS TAB */}
+            {activeTab === 'ANALYTICS' && (
+              <motion.div key="analytics" initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} className="space-y-6">
+                {/* Progress Bar */}
+                <div className="bg-void/40 border border-white/5 p-5 rounded-xl">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-sm font-black text-white uppercase tracking-wider">Auction Progress</span>
+                    <span className="text-sm text-neon-gold font-bold">{Math.round((currentIndex / Math.max(1, pool.length)) * 100)}%</span>
+                  </div>
+                  <div className="w-full bg-void h-3 rounded-full overflow-hidden border border-white/5">
+                    <div className="h-full rounded-full bg-gradient-to-r from-neon-gold to-neon-green transition-all duration-500" style={{ width: `${(currentIndex / Math.max(1, pool.length)) * 100}%` }} />
+                  </div>
+                  <div className="flex justify-between text-[10px] text-av-muted mt-2 font-bold">
+                    <span>{soldPlayers.length} Sold</span>
+                    <span>{pool.length - currentIndex} Remaining</span>
+                    <span>{unsoldPlayers.length} Unsold</span>
+                  </div>
+                </div>
+                {/* Key Metrics */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {(() => {
+                    const maxBid = soldPlayers.length > 0 ? Math.max(...soldPlayers.map(p => p.soldPrice || 0)) : 0;
+                    return (
+                      <div className="bg-void/40 border border-neon-gold/20 p-4 rounded-xl text-center">
+                        <div className="text-[10px] text-av-muted uppercase font-bold tracking-wider mb-1">Highest Bid</div>
+                        <div className="text-xl font-black text-neon-gold">{formatCr(maxBid)}</div>
+                      </div>
+                    );
+                  })()}
+                  {(() => {
+                    const totalVal = parseFloat(soldPlayers.reduce((sum, p) => sum + (p.soldPrice || 0), 0).toFixed(2));
+                    return (
+                      <div className="bg-void/40 border border-neon-green/20 p-4 rounded-xl text-center">
+                        <div className="text-[10px] text-av-muted uppercase font-bold tracking-wider mb-1">Total Spent</div>
+                        <div className="text-xl font-black text-neon-green">{formatCr(totalVal)}</div>
+                      </div>
+                    );
+                  })()}
+                  {(() => {
+                    const topPlayer = [...soldPlayers].sort((a, b) => (b.soldPrice || 0) - (a.soldPrice || 0))[0];
+                    return (
+                      <div className="bg-void/40 border border-neon-cyan/20 p-4 rounded-xl text-center">
+                        <div className="text-[10px] text-av-muted uppercase font-bold tracking-wider mb-1">Most Expensive</div>
+                        <div className="text-sm font-black text-neon-cyan truncate">{topPlayer ? topPlayer.name : '—'}</div>
+                        {topPlayer && <div className="text-xs text-av-muted mt-0.5">{formatCr(topPlayer.soldPrice || 0)}</div>}
+                      </div>
+                    );
+                  })()}
+                </div>
+                {/* Purse Rankings */}
+                <div>
+                  <h3 className="text-xs font-black text-white uppercase tracking-widest mb-4">Purse Rankings</h3>
+                  <div className="space-y-3">
+                    {[...teams].sort((a, b) => b.purse - a.purse).map((team, idx) => (
+                      <div key={team.id} className="flex items-center gap-3">
+                        <span className="text-xs text-av-muted font-bold w-5 text-right">#{idx + 1}</span>
+                        <span className="text-xl shrink-0">{team.emoji}</span>
+                        <div className="flex-1">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-xs font-bold text-white uppercase">{team.abbr}</span>
+                            <span className="text-xs font-black" style={{ color: team.primaryColor }}>{formatCr(team.purse)}</span>
+                          </div>
+                          <div className="w-full bg-void h-1.5 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${(team.purse / 120) * 100}%`, backgroundColor: team.primaryColor }} />
+                          </div>
+                        </div>
+                        <span className="text-[10px] text-av-muted w-12 text-right">{team.squad.length}/25</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* Biggest Spender & Richest */}
+                {(() => {
+                  const biggestSpender = [...teams].sort((a, b) => (120 - b.purse) - (120 - a.purse))[0];
+                  const richest = [...teams].sort((a, b) => b.purse - a.purse)[0];
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-void/40 border border-neon-red/20 p-4 rounded-xl">
+                        <div className="text-[10px] text-av-muted uppercase font-bold tracking-wider mb-2">Biggest Spender</div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">{biggestSpender?.emoji}</span>
+                          <div>
+                            <div className="text-sm font-black text-white uppercase">{biggestSpender?.name}</div>
+                            <div className="text-xs text-neon-red font-bold">Spent {formatCr(parseFloat((120 - (biggestSpender?.purse || 120)).toFixed(2)))}</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-void/40 border border-neon-green/20 p-4 rounded-xl">
+                        <div className="text-[10px] text-av-muted uppercase font-bold tracking-wider mb-2">Richest Team</div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">{richest?.emoji}</span>
+                          <div>
+                            <div className="text-sm font-black text-white uppercase">{richest?.name}</div>
+                            <div className="text-xs text-neon-green font-bold">{formatCr(richest?.purse || 0)} remaining</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </motion.div>
             )}
 

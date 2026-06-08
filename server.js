@@ -37,25 +37,44 @@ const TEAMS = [
   { id: 'lsg', name: 'Lucknow Super Giants', abbr: 'LSG', emoji: '🩵', primaryColor: '#00ADEF', strategy: 'balanced' }
 ];
 
-// Sequential draft categories
-const CATEGORIES_ORDER = [
-  'Marquee Players',
-  'Indian Capped Batsmen',
-  'Indian Capped Wicket Keepers',
-  'Indian Fast Bowlers',
-  'Indian Spinners',
-  'Indian All Rounders',
-  'Overseas Batsmen',
-  'Overseas Wicket Keepers',
-  'Overseas Fast Bowlers',
-  'Overseas Spinners',
-  'Overseas Pace All Rounders',
-  'Overseas Spin All Rounders',
-  'Indian Uncapped Batsmen',
-  'Indian Uncapped Wicket Keepers',
-  'Emerging Players',
-  'Unsold Pool'
+// V3: 16-Set category ordering
+const SET_ORDER = [
+  'SET 1: Marquee Players',
+  'SET 2: Capped Indian Batters',
+  'SET 3: Capped Indian All-Rounders',
+  'SET 4: Capped Indian Wicketkeepers',
+  'SET 5: Capped Indian Fast Bowlers',
+  'SET 6: Capped Indian Spinners',
+  'SET 7: Uncapped Indian Batters',
+  'SET 8: Uncapped Indian All-Rounders',
+  'SET 9: Uncapped Indian Wicketkeepers',
+  'SET 10: Uncapped Indian Bowlers',
+  'SET 11: Overseas Batters',
+  'SET 12: Overseas All-Rounders',
+  'SET 13: Overseas Wicketkeepers',
+  'SET 14: Overseas Fast Bowlers',
+  'SET 15: Overseas Spinners',
+  'SET 16: Accelerated Auction Players',
 ];
+
+// V3: Map old categories to new 16-set categories
+const CATEGORY_REMAP = {
+  'Marquee Players': 'SET 1: Marquee Players',
+  'Indian Capped Batsmen': 'SET 2: Capped Indian Batters',
+  'Indian All Rounders': 'SET 3: Capped Indian All-Rounders',
+  'Indian Capped Wicket Keepers': 'SET 4: Capped Indian Wicketkeepers',
+  'Indian Fast Bowlers': 'SET 5: Capped Indian Fast Bowlers',
+  'Indian Spinners': 'SET 6: Capped Indian Spinners',
+  'Indian Uncapped Batsmen': 'SET 7: Uncapped Indian Batters',
+  'Emerging Players': 'SET 7: Uncapped Indian Batters',
+  'Indian Uncapped Wicket Keepers': 'SET 9: Uncapped Indian Wicketkeepers',
+  'Overseas Batsmen': 'SET 11: Overseas Batters',
+  'Overseas Pace All Rounders': 'SET 12: Overseas All-Rounders',
+  'Overseas Spin All Rounders': 'SET 12: Overseas All-Rounders',
+  'Overseas Wicket Keepers': 'SET 13: Overseas Wicketkeepers',
+  'Overseas Fast Bowlers': 'SET 14: Overseas Fast Bowlers',
+  'Overseas Spinners': 'SET 15: Overseas Spinners',
+};
 
 app.prepare().then(() => {
   const server = express();
@@ -67,7 +86,8 @@ app.prepare().then(() => {
     }
   });
 
-    // Database Persist Helpers
+  // ─── Database Persist Helpers ───────────────────────────────────────────────
+
   async function dbCreateRoom(roomCode, name, type, adminToken, adminName, teamId) {
     if (!dbConnected) return;
     try {
@@ -227,14 +247,16 @@ app.prepare().then(() => {
     }
   }
 
-  // Socket.IO Room Bidding State Store
+  // ─── Socket.IO Room State Store ─────────────────────────────────────────────
+
   const activeRooms = {};
-  
+
   // Reconnection token registry
   const tokenToParticipant = {};
   const adminDisconnectBuffers = {};
 
-  // Server tick timer loop
+  // ─── Server Tick Loop (1 second) ────────────────────────────────────────────
+
   setInterval(() => {
     Object.keys(activeRooms).forEach((roomCode) => {
       const room = activeRooms[roomCode];
@@ -246,25 +268,30 @@ app.prepare().then(() => {
 
         if (room.countdown <= 0) {
           if (room.currentBidderId) {
-            // Start warning sequence
+            // V3 Fix: Start GOING ONCE / GOING TWICE sequence
             room.phase = 'RESOLVING';
-            room.countdown = 3; // 3 ticks: 3 => GOING ONCE, 2 => GOING TWICE, 1 => SOLD (resolves)
             room.countdownText = 'GOING ONCE';
+            room.countdown = 2;
             io.to(roomCode).emit('room-state', getSerializableRoomState(room));
           } else {
-            resolvePlayer(roomCode); // immediately unsold
+            // No bidder — immediately unsold
+            resolvePlayer(roomCode);
           }
         }
-      } 
+      }
       else if (room.phase === 'RESOLVING') {
         room.countdown--;
-        if (room.countdown === 2) {
+
+        if (room.countdown === 1 && room.countdownText === 'GOING ONCE') {
+          // Transition to GOING TWICE
           room.countdownText = 'GOING TWICE';
+          room.countdown = 2;
           io.to(roomCode).emit('room-state', getSerializableRoomState(room));
-        } else if (room.countdown === 1) {
-          resolvePlayer(roomCode); // resolves and sets phase = 'SOLD'
+        } else if (room.countdown === 0 && room.countdownText === 'GOING TWICE') {
+          // Final call — resolve (SOLD)
+          resolvePlayer(roomCode);
         }
-      } 
+      }
       else if (room.phase === 'SOLD' || room.phase === 'UNSOLD') {
         room.countdown--;
         if (room.countdown <= 0) {
@@ -275,17 +302,29 @@ app.prepare().then(() => {
     });
   }, 1000);
 
+  // ─── V3: IPL Increment Slabs ─────────────────────────────────────────────
+
   function getNextIncrement(bid) {
-    if (bid < 1.00) return 0.05;
-    if (bid < 2.00) return 0.10;
-    if (bid < 5.00) return 0.20;
-    if (bid < 10.00) return 0.50;
-    if (bid < 20.00) return 1.00;
-    return 2.00;
+    if (bid < 0.50) return 0.10;  // 10L increments
+    if (bid < 1.00) return 0.25;  // 25L increments
+    if (bid < 2.00) return 0.50;  // 50L increments
+    if (bid < 5.00) return 1.00;  // 1Cr increments
+    if (bid < 10.00) return 0.50; // 50L increments
+    return 1.00;                   // 1Cr increments
   }
+
   function getNextBid(bid) {
     return parseFloat((bid + getNextIncrement(bid)).toFixed(2));
   }
+
+  // ─── V3: formatCr – full words ───────────────────────────────────────────
+
+  function formatCr(val) {
+    if (val < 1.00) return `₹${Math.round(val * 100)} Lakhs`;
+    return `₹${val.toFixed(2)} Crore`;
+  }
+
+  // ─── Serializable Room State ─────────────────────────────────────────────
 
   function getSerializableRoomState(room) {
     return {
@@ -324,6 +363,8 @@ app.prepare().then(() => {
     };
   }
 
+  // ─── Load Next Player ────────────────────────────────────────────────────
+
   function loadNextPlayer(roomCode) {
     const room = activeRooms[roomCode];
     if (!room) return;
@@ -350,6 +391,8 @@ app.prepare().then(() => {
     setTimeout(() => runAIRound(roomCode), 1500);
   }
 
+  // ─── Resolve Player (SOLD / UNSOLD) ─────────────────────────────────────
+
   function resolvePlayer(roomCode, forceUnsold = false) {
     const room = activeRooms[roomCode];
     if (!room) return;
@@ -359,11 +402,11 @@ app.prepare().then(() => {
 
     if (!winnerId || forceUnsold) {
       room.phase = 'UNSOLD';
-      room.countdown = 2; // Show unsold state for 2 seconds
+      room.countdown = 2;
       room.countdownText = 'UNSOLD';
       io.to(roomCode).emit('player-unsold', { player });
-      
-      // Move to Unsold Pool category at the end of queue if first pass
+
+      // V3: Move to 'Unsold Pool' category at the end of queue if first pass
       if (player.category !== 'Unsold Pool') {
         const unsoldPlayer = { ...player, category: 'Unsold Pool' };
         room.playerQueue.push(unsoldPlayer);
@@ -390,16 +433,16 @@ app.prepare().then(() => {
       const team = room.teams[winnerId];
 
       team.purse = parseFloat((team.purse - finalPrice).toFixed(2));
-      const updatedPlayer = { 
-        ...player, 
-        soldPrice: finalPrice, 
+      const updatedPlayer = {
+        ...player,
+        soldPrice: finalPrice,
         currentTeam: winnerId,
         auctionStatus: 'SOLD'
       };
       team.squad.push(updatedPlayer);
 
       room.phase = 'SOLD';
-      room.countdown = 2; // Show sold state for 2 seconds
+      room.countdown = 2;
       room.countdownText = 'SOLD';
 
       io.to(roomCode).emit('player-sold', { player: updatedPlayer, teamId: winnerId, price: finalPrice });
@@ -416,24 +459,20 @@ app.prepare().then(() => {
 
       // DB Logs
       dbAddAuctionResult(roomCode, player.name, winnerId, finalPrice, player.category);
-      dbAddAuctionLog(roomCode, 'sold', `${player.name} sold to ${winnerId.toUpperCase()} for ₹${finalPrice} Cr`);
+      dbAddAuctionLog(roomCode, 'sold', `${player.name} sold to ${winnerId.toUpperCase()} for ₹${finalPrice} Crore`);
       dbUpdateRoomStatus(roomCode, room.status, 'SOLD', room.currentIndex, finalPrice, winnerId, room.paused, room.locked);
       io.to(roomCode).emit('room-state', getSerializableRoomState(room));
     }
   }
 
-  function formatCr(val) {
-    if (val < 1.00) return `₹${Math.round(val * 100)} Lakhs`;
-    return `₹${val.toFixed(2)} Cr`;
-  }
+  // ─── AI Bidding Loop ─────────────────────────────────────────────────────
 
-  // AI Bidding Loops
   function runAIRound(roomCode) {
     const room = activeRooms[roomCode];
     if (!room || room.status !== 'auction' || room.paused || (room.phase !== 'BIDDING' && room.phase !== 'RESOLVING')) return;
-    if (!room.enableAITeams) return; // Exit if AI is disabled
-    
-    // Filter AI unowned teams that aren't highest bidders
+    if (!room.enableAITeams) return;
+
+    // Filter AI unowned teams that aren't the current highest bidder
     const aiTeamIds = Object.keys(room.teams).filter(id => {
       const team = room.teams[id];
       return !team.isHuman && id !== room.currentBidderId;
@@ -462,7 +501,7 @@ app.prepare().then(() => {
                                     strategy === 'star-hunter' ? 0.20 :
                                     strategy === 'conservative' ? 0.09 :
                                     strategy === 'youth-focused' ? 0.14 : 0.15;
-      
+
       const mvs = player.marketValueScore || player.overall;
       const starBonus = mvs >= 90 ? 1.5 : mvs >= 80 ? 1.2 : 0.9;
       const maxWilling = mvs * budgetPerSlot * personalityMultiplier * starBonus;
@@ -471,9 +510,8 @@ app.prepare().then(() => {
 
       // Determine probability based on strategy, category, and budget pressure
       let shouldBid = false;
-      const isMarquee = player.category === 'Marquee Players';
+      const isMarquee = player.category === 'SET 1: Marquee Players';
 
-      // Base probability
       let prob = 0.45;
       if (strategy === 'aggressive') prob = 0.65;
       else if (strategy === 'conservative') prob = 0.25;
@@ -490,7 +528,7 @@ app.prepare().then(() => {
       if (shouldBid) {
         room.currentBid = nextBid;
         room.currentBidderId = randomTeamId;
-        
+
         // Reset countdown to configured duration
         room.countdown = room.timerDuration || 10;
         room.countdownText = null;
@@ -532,6 +570,8 @@ app.prepare().then(() => {
     }
   }
 
+  // ─── Socket.IO Event Handlers ────────────────────────────────────────────
+
   io.on('connection', (socket) => {
     console.log('Client connected:', socket.id);
 
@@ -549,19 +589,19 @@ app.prepare().then(() => {
       let isUnique = false;
       let attempts = 0;
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-      
+
       while (!isUnique && attempts < 100) {
         attempts++;
         roomCode = '';
         for (let i = 0; i < 6; i++) {
           roomCode += chars.charAt(Math.floor(Math.random() * chars.length));
         }
-        
+
         // Check in-memory active rooms
         if (activeRooms[roomCode]) {
           continue;
         }
-        
+
         // Check database if connected
         if (dbConnected) {
           try {
@@ -573,17 +613,17 @@ app.prepare().then(() => {
             console.error('[Database] Unique code check error:', err.message);
           }
         }
-        
+
         isUnique = true;
       }
-      
+
       // Generate clean token
       const tokenChars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
       let adminToken = 'usr_';
       for (let i = 0; i < 16; i++) {
         adminToken += tokenChars.charAt(Math.floor(Math.random() * tokenChars.length));
       }
-      
+
       const roomTeams = {};
       TEAMS.forEach(t => {
         roomTeams[t.id] = {
@@ -600,7 +640,8 @@ app.prepare().then(() => {
         };
       });
 
-      // Load player pool and sort by draft category order
+      // ── V3: Load and enrich player data ──────────────────────────────────
+
       let playersData = [];
       try {
         const FLAG_MAP = {
@@ -610,17 +651,21 @@ app.prepare().then(() => {
           'Pakistan': '🇵🇰', 'Zimbabwe': '🇿🇼', 'Ireland': '🇮🇪',
           'Netherlands': '🇳🇱', 'Nepal': '🇳🇵',
         };
+
         const raw = require('./src/lib/players-data.json');
+
+        // V3: Enrich with all expanded stats fields
         playersData = raw.map(p => ({
           id: p.id,
           name: p.name,
           country: p.country,
           flag: FLAG_MAP[p.country] || '🌍',
           overseas: p.country !== 'India',
-          capped: p.category !== 'Indian Uncapped Batsmen' && 
-                  p.category !== 'Indian Uncapped Wicket Keepers' && 
+          capped: p.category !== 'Indian Uncapped Batsmen' &&
+                  p.category !== 'Indian Uncapped Wicket Keepers' &&
                   p.category !== 'Emerging Players',
           role: p.role,
+          subRole: p.subRole || '',
           age: p.age,
           basePrice: p.basePrice,
           soldPrice: p.soldPrice,
@@ -634,18 +679,52 @@ app.prepare().then(() => {
           overall: p.overallRating,
           fitness: Math.min(99, 55 + Math.floor((100 - p.age) * 0.8)),
           popularity: p.popularity,
-          category: p.category, // keep category for queue sorting
-          marketValueScore: p.marketValueScore || p.overallRating
+          category: p.category,
+          marketValueScore: p.marketValueScore || p.overallRating,
+          // V3 expanded stats
+          battingStyle: p.battingStyle || 'Right-hand bat',
+          bowlingStyle: p.bowlingStyle || (p.subRole ? p.subRole : 'N/A'),
+          matches: p.matches || 0,
+          runs: p.runs || 0,
+          wickets: p.wickets || 0,
+          strikeRate: p.strikeRate || 0,
+          economy: p.economy || 0,
+          iplExperience: (p.matches || 0) >= 100 ? 'Veteran (100+ games)'
+            : (p.matches || 0) >= 50 ? 'Experienced (50+ games)'
+            : (p.matches || 0) >= 20 ? 'Moderate (20+ games)'
+            : 'Emerging (<20 games)',
         }));
+
+        // V3: Reclassify into 16-set categories
+        playersData = playersData.map(p => {
+          let cat = CATEGORY_REMAP[p.category] || p.category;
+          let playerCapped = p.capped;
+
+          // Re-categorize uncapped Indian bowlers/ARs (below OVR 79) to uncapped sets
+          if (p.country === 'India') {
+            if (p.category === 'Indian All Rounders' && p.overall < 79) {
+              cat = 'SET 8: Uncapped Indian All-Rounders';
+              playerCapped = false;
+              p.basePrice = p.overall < 70 ? 0.20 : p.overall < 75 ? 0.30 : 0.40;
+            } else if ((p.category === 'Indian Fast Bowlers' || p.category === 'Indian Spinners') && p.overall < 79) {
+              cat = 'SET 10: Uncapped Indian Bowlers';
+              playerCapped = false;
+              p.basePrice = p.overall < 70 ? 0.20 : p.overall < 75 ? 0.30 : 0.40;
+            }
+          }
+
+          return { ...p, category: cat, capped: playerCapped };
+        });
+
       } catch (err) {
         console.error("Missing players-data.json database catalog", err);
       }
 
-      // Categorized Queue builder
+      // V3: Build the player queue in 16-set order (each set shuffled randomly)
       const playerQueue = [];
-      CATEGORIES_ORDER.forEach(cat => {
-        const catPlayers = playersData.filter(p => p.category === cat).sort(() => Math.random() - 0.5);
-        playerQueue.push(...catPlayers);
+      SET_ORDER.forEach(set => {
+        const setPlayers = playersData.filter(p => p.category === set).sort(() => Math.random() - 0.5);
+        playerQueue.push(...setPlayers);
       });
 
       const newRoom = {
@@ -699,7 +778,7 @@ app.prepare().then(() => {
       const room = activeRooms[roomCode];
       if (!room) return callback({ success: false, reason: 'Room not found' });
       if (room.locked) return callback({ success: false, reason: 'Lobby is locked' });
-      
+
       // Bypass password if isInviteLink is true
       if (!isInviteLink && room.type === 'private' && room.password !== password) {
         return callback({ success: false, reason: 'Incorrect passcode' });
@@ -778,7 +857,7 @@ app.prepare().then(() => {
 
         p.socketId = socket.id;
         socket.join(roomCode);
-        
+
         callback({ success: true });
         socket.emit('room-state', getSerializableRoomState(room));
       } else {
@@ -871,7 +950,7 @@ app.prepare().then(() => {
       // DB Logs
       dbAddBid(roomCode, bidderId, nextBidAmount);
       dbUpdateRoomStatus(roomCode, room.status, room.phase, room.currentIndex, nextBidAmount, bidderId, room.paused, room.locked);
-      dbAddAuctionLog(roomCode, 'bid', `${p.name} (${bidderId.toUpperCase()}) bid ₹${nextBidAmount} Cr`);
+      dbAddAuctionLog(roomCode, 'bid', `${p.name} (${bidderId.toUpperCase()}) bid ₹${nextBidAmount} Crore`);
 
       // Schedule next AI check to compete
       setTimeout(() => runAIRound(roomCode), 1200 + Math.random() * 1500);
@@ -919,16 +998,16 @@ app.prepare().then(() => {
             }
 
             room.status = 'auction';
-            
+
             // AI Backfilling unowned spots
             Object.keys(room.teams).forEach(id => {
               const teamState = room.teams[id];
               const isTakenByHuman = room.participants.some(p => p.teamId === id);
               if (!isTakenByHuman) {
                 teamState.isHuman = false;
-                teamState.controllerName = room.enableAITeams 
-                  ? `AI Manager (${teamState.strategy})` 
-                  : null; // Null if AI is disabled
+                teamState.controllerName = room.enableAITeams
+                  ? `AI Manager (${teamState.strategy})`
+                  : null;
               }
             });
 
@@ -1006,6 +1085,29 @@ app.prepare().then(() => {
           room.status = 'complete';
           room.phase = 'COMPLETE';
           break;
+
+        // V3: Reintroduce unsold players as SET 16 Accelerated Auction Players
+        case 'reintroduce':
+          if (extra && Array.isArray(extra) && extra.length > 0) {
+            // Collect unsold players from the queue that match the given IDs
+            const unsoldFromQueue = room.playerQueue.filter(p =>
+              extra.includes(p.id) && p.category === 'Unsold Pool'
+            ).map(p => ({ ...p, category: 'SET 16: Accelerated Auction Players' }));
+
+            if (unsoldFromQueue.length > 0) {
+              // Remove the old 'Unsold Pool' entries from the queue
+              room.playerQueue = room.playerQueue.filter(p =>
+                !(extra.includes(p.id) && p.category === 'Unsold Pool')
+              );
+              // Append them at the end as SET 16
+              room.playerQueue.push(...unsoldFromQueue);
+              // Jump currentIndex to the first reintroduced player
+              room.currentIndex = room.playerQueue.length - unsoldFromQueue.length;
+              room.status = 'auction';
+              loadNextPlayer(roomCode);
+            }
+          }
+          break;
       }
 
       callback({ success: true });
@@ -1032,7 +1134,7 @@ app.prepare().then(() => {
             console.log(`Admin disconnected. Waiting 60s for reconnect in room ${roomCode}`);
             adminDisconnectBuffers[roomCode] = setTimeout(() => {
               const remainingParticipants = room.participants.filter(x => x.token !== departing.token);
-              
+
               if (remainingParticipants.length > 0) {
                 const oldest = remainingParticipants[0];
                 oldest.isAdmin = true;
