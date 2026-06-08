@@ -74,7 +74,7 @@ export default function LandingPage() {
         >
           <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full border border-neon-gold/30 bg-neon-gold/10 text-neon-gold font-bold text-xs uppercase tracking-wider mb-4 animate-pulse">
             <Zap className="h-3 w-3 fill-neon-gold" />
-            <span>IPL 2025 Multi-Room Simulations</span>
+            <span>Founder: Sachin Arul</span>
           </div>
           <h1 className="text-4xl sm:text-6xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-neon-gold to-neon-cyan mb-4">
             AUCTIONVERSE CRICKET
