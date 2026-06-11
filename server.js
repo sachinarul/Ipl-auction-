@@ -42,7 +42,8 @@ const SET_ORDER = [
   'MARQUEE',
   'SET 1',
   'SET 2',
-  'SET 3'
+  'SET 3',
+  'SET 4'
 ];
 
 app.prepare().then(() => {
