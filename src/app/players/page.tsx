@@ -205,11 +205,11 @@ export default function PlayerDatabase() {
             <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as FilterType)}
               className="text-sm text-white px-3 py-3 rounded-xl focus:outline-none cursor-pointer"
               style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <option value="ALL">All Roles</option>
-              <option value="BAT">Batsmen</option>
-              <option value="BOWL">Bowlers</option>
-              <option value="AR">All-Rounders</option>
-              <option value="WK">Wicketkeepers</option>
+              <option value="ALL" style={{ background: '#151515', color: '#ffffff' }}>All Roles</option>
+              <option value="BAT" style={{ background: '#151515', color: '#ffffff' }}>Batsmen</option>
+              <option value="BOWL" style={{ background: '#151515', color: '#ffffff' }}>Bowlers</option>
+              <option value="AR" style={{ background: '#151515', color: '#ffffff' }}>All-Rounders</option>
+              <option value="WK" style={{ background: '#151515', color: '#ffffff' }}>Wicketkeepers</option>
             </select>
           </div>
 
@@ -219,9 +219,9 @@ export default function PlayerDatabase() {
             <select value={overseasFilter} onChange={(e) => setOverseasFilter(e.target.value as any)}
               className="text-sm text-white px-3 py-3 rounded-xl focus:outline-none cursor-pointer"
               style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <option value="ALL">All Origins</option>
-              <option value="DOMESTIC">🇮🇳 Indian</option>
-              <option value="OVERSEAS">🌍 Overseas</option>
+              <option value="ALL" style={{ background: '#151515', color: '#ffffff' }}>All Origins</option>
+              <option value="DOMESTIC" style={{ background: '#151515', color: '#ffffff' }}>🇮🇳 Indian</option>
+              <option value="OVERSEAS" style={{ background: '#151515', color: '#ffffff' }}>🌍 Overseas</option>
             </select>
           </div>
 
@@ -231,9 +231,9 @@ export default function PlayerDatabase() {
             <select value={setFilter} onChange={(e) => setSetFilter(e.target.value)}
               className="text-sm text-white px-3 py-3 rounded-xl focus:outline-none cursor-pointer"
               style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <option value="ALL">All Sets</option>
+              <option value="ALL" style={{ background: '#151515', color: '#ffffff' }}>All Sets</option>
               {availableSets.map((s) => (
-                <option key={s} value={s}>{SET_META[s]?.icon || '📦'} {SET_META[s]?.label || s}</option>
+                <option key={s} value={s} style={{ background: '#151515', color: '#ffffff' }}>{SET_META[s]?.icon || '📦'} {SET_META[s]?.label || s}</option>
               ))}
             </select>
           </div>
