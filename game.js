@@ -15,20 +15,10 @@ const gameState = {
   allTeams: [],             // deep copy of IPL_TEAMS — all start with squad: []
   auctionComplete: false,
   auctionSets: [
-    { id: 1, name: "SET 1 - MARQUEE PLAYERS", enabled: true },
-    { id: 2, name: "SET 2 - CAPPED INDIAN BATSMEN", enabled: true },
-    { id: 3, name: "SET 3 - OVERSEAS BATSMEN", enabled: true },
-    { id: 4, name: "SET 4 - CAPPED INDIAN WICKETKEEPERS", enabled: true },
-    { id: 5, name: "SET 5 - OVERSEAS WICKETKEEPERS", enabled: true },
-    { id: 6, name: "SET 6 - INDIAN ALL-ROUNDERS", enabled: true },
-    { id: 7, name: "SET 7 - OVERSEAS ALL-ROUNDERS", enabled: true },
-    { id: 8, name: "SET 8 - INDIAN FAST BOWLERS", enabled: true },
-    { id: 9, name: "SET 9 - OVERSEAS FAST BOWLERS", enabled: true },
-    { id: 10, name: "SET 10 - INDIAN SPINNERS", enabled: true },
-    { id: 11, name: "SET 11 - OVERSEAS SPINNERS", enabled: true },
-    { id: 12, name: "SET 12 - EMERGING PLAYERS", enabled: true },
-    { id: 13, name: "SET 13 - UNCAPPED PLAYERS", enabled: true },
-    { id: 14, name: "SET 14 - ACCELERATED AUCTION", enabled: true }
+    { id: 1, name: "MARQUEE", enabled: true },
+    { id: 2, name: "SET 1", enabled: true },
+    { id: 3, name: "SET 2", enabled: true },
+    { id: 4, name: "SET 3", enabled: true }
   ]
 };
 
