@@ -41,6 +41,8 @@ export const PLAYER_DB: Player[] = rawPlayers.map((p: any) => ({
   fitness: Math.min(99, 55 + Math.floor((100 - p.age) * 0.8)),
   popularity: p.popularity,
   marketValueScore: p.marketValueScore || p.overallRating,
+  set: p.set || 'MARQUEE',
+  category: p.category || '',
 })) as any;
 
 export function getPlayersByRole(role: PlayerRole): Player[] {
