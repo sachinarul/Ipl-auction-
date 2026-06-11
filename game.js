@@ -18,7 +18,8 @@ const gameState = {
     { id: 1, name: "MARQUEE", enabled: true },
     { id: 2, name: "SET 1", enabled: true },
     { id: 3, name: "SET 2", enabled: true },
-    { id: 4, name: "SET 3", enabled: true }
+    { id: 4, name: "SET 3", enabled: true },
+    { id: 5, name: "SET 4", enabled: true }
   ]
 };
 
