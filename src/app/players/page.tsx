@@ -10,14 +10,45 @@ import Navbar from '@/components/shared/Navbar';
 
 type FilterType = 'ALL' | PlayerRole;
 
-// Set metadata for icons and accent colors
-const SET_META: Record<string, { icon: string; label: string; accent: string; glowColor: string }> = {
-  'MARQUEE': { icon: '🏆', label: 'MARQUEE SET',    accent: '#F5C518', glowColor: 'rgba(245,197,24,0.25)' },
-  'SET 1':   { icon: '⭐', label: 'SET 1',           accent: '#00D4FF', glowColor: 'rgba(0,212,255,0.20)' },
-  'SET 2':   { icon: '💎', label: 'SET 2',           accent: '#B44FFF', glowColor: 'rgba(180,79,255,0.20)' },
-  'SET 3':   { icon: '🌟', label: 'SET 3',           accent: '#00FF88', glowColor: 'rgba(0,255,136,0.20)' },
-  'SET 4':   { icon: '🔥', label: 'SET 4',           accent: '#FF6B35', glowColor: 'rgba(255,107,53,0.20)' },
-};
+const SET_ORDER = [
+  'MARQUEE', 'SET 1', 'SET 2', 'SET 3', 'SET 4',
+  'BA1', 'AL1', 'WK1', 'FA1', 'SP1',
+  'UBA1', 'UAL1', 'UWK1', 'UFA1', 'USP1',
+  'BA2', 'AL2', 'WK2', 'FA2', 'SP2',
+  'UBA2', 'UAL2', 'UWK2', 'UFA2', 'USP2',
+  'AL3', 'FA3', 'UBA3', 'UAL3', 'UWK3', 'UFA3', 'USP3',
+  'AL4', 'FA4', 'UBA4', 'UAL4', 'UFA4', 'USP4',
+  'FA5', 'UAL5', 'UFA5', 'UAL6', 'UFA6', 'UAL7', 'UAL8', 'UAL9', 'UAL10'
+];
+
+const SET_META: Record<string, { icon: string; label: string; accent: string; glowColor: string }> = {};
+
+SET_ORDER.forEach(setName => {
+  const name = setName.toUpperCase();
+  if (name === 'MARQUEE' || name === 'MARQUEE SET 1') {
+    SET_META[setName] = { icon: '🏆', label: '🏆 MARQUEE SET 1', accent: '#F5C518', glowColor: 'rgba(245,197,24,0.15)' };
+  } else if (name.startsWith('BA') || name.startsWith('UBA')) {
+    SET_META[setName] = { icon: '🏏', label: `🏏 ${setName} - BATSMEN`, accent: '#00D4FF', glowColor: 'rgba(0,212,255,0.12)' };
+  } else if (name.startsWith('WK') || name.startsWith('UWK')) {
+    SET_META[setName] = { icon: '🧤', label: `🧤 ${setName} - WICKETKEEPERS`, accent: '#FEF3C7', glowColor: 'rgba(254,243,199,0.12)' };
+  } else if (name.startsWith('AL') || name.startsWith('UAL')) {
+    SET_META[setName] = { icon: '⚡', label: `⚡ ${setName} - ALL-ROUNDERS`, accent: '#B44FFF', glowColor: 'rgba(180,79,255,0.12)' };
+  } else if (name.startsWith('FA') || name.startsWith('UFA')) {
+    SET_META[setName] = { icon: '🔥', label: `🔥 ${setName} - FAST BOWLERS`, accent: '#FF3366', glowColor: 'rgba(255,51,102,0.12)' };
+  } else if (name.startsWith('SP') || name.startsWith('USP')) {
+    SET_META[setName] = { icon: '🌀', label: `🌀 ${setName} - SPINNERS`, accent: '#00FF88', glowColor: 'rgba(0,255,136,0.12)' };
+  } else if (name === 'SET 1') {
+    SET_META[setName] = { icon: '⭐', label: '⭐ SET 1', accent: '#00D4FF', glowColor: 'rgba(0,212,255,0.12)' };
+  } else if (name === 'SET 2') {
+    SET_META[setName] = { icon: '💎', label: '💎 SET 2', accent: '#B44FFF', glowColor: 'rgba(180,79,255,0.12)' };
+  } else if (name === 'SET 3') {
+    SET_META[setName] = { icon: '🌟', label: '🌟 SET 3', accent: '#00FF88', glowColor: 'rgba(0,255,136,0.12)' };
+  } else if (name === 'SET 4') {
+    SET_META[setName] = { icon: '🔥', label: '🔥 SET 4', accent: '#FF6B35', glowColor: 'rgba(255,107,53,0.12)' };
+  } else {
+    SET_META[setName] = { icon: '📦', label: setName, accent: '#888888', glowColor: 'rgba(136,136,136,0.12)' };
+  }
+});
 
 const ROLE_COLORS: Record<string, { bg: string; text: string; border: string; label: string }> = {
   'BAT':  { bg: '#E0F2FE', text: '#0369A1', border: '#BAE6FD', label: 'BATSMAN'  },
@@ -25,8 +56,6 @@ const ROLE_COLORS: Record<string, { bg: string; text: string; border: string; la
   'AR':   { bg: '#DCFCE7', text: '#15803D', border: '#BBF7D0', label: 'ALL-ROUNDER' },
   'WK':   { bg: '#FEF3C7', text: '#B45309', border: '#FDE68A', label: 'WICKET-KEEPER' },
 };
-
-const SET_ORDER = ['MARQUEE', 'SET 1', 'SET 2', 'SET 3', 'SET 4'];
 
 export default function PlayerDatabase() {
   const { teams, currentPlayer } = useAuctionStore();

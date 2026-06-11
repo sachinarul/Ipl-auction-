@@ -39,11 +39,14 @@ const TEAMS = [
 
 // V3: New IPL structured player sets
 const SET_ORDER = [
-  'MARQUEE',
-  'SET 1',
-  'SET 2',
-  'SET 3',
-  'SET 4'
+  'MARQUEE', 'SET 1', 'SET 2', 'SET 3', 'SET 4',
+  'BA1', 'AL1', 'WK1', 'FA1', 'SP1',
+  'UBA1', 'UAL1', 'UWK1', 'UFA1', 'USP1',
+  'BA2', 'AL2', 'WK2', 'FA2', 'SP2',
+  'UBA2', 'UAL2', 'UWK2', 'UFA2', 'USP2',
+  'AL3', 'FA3', 'UBA3', 'UAL3', 'UWK3', 'UFA3', 'USP3',
+  'AL4', 'FA4', 'UBA4', 'UAL4', 'UFA4', 'USP4',
+  'FA5', 'UAL5', 'UFA5', 'UAL6', 'UFA6', 'UAL7', 'UAL8', 'UAL9', 'UAL10'
 ];
 
 app.prepare().then(() => {
