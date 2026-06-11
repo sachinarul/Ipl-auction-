@@ -79,6 +79,7 @@ const PLAYERS_TO_SEED: PlayerDef[] = [
   {name:"Azmatullah Omarzai",  set:"SET 1",  category:"ALL_ROUNDER",   role:"AR",     overseas:true, basePrice:1.00,country:AFG,age:23},
   {name:"Deepak Chahar",       set:"SET 1",  category:"FAST_BOWLER",   role:"Bowler", overseas:false,basePrice:1.00,country:IND,age:32},
   {name:"Dhruv Jurel",         set:"SET 1",  category:"WICKET_KEEPER", role:"WK",     overseas:false,basePrice:1.00,country:IND,age:23},
+  {name:"Ishan Kishan",        set:"SET 1",  category:"WICKET_KEEPER", role:"WK",     overseas:false,basePrice:2.00,country:IND,age:27},
   {name:"Glenn Phillips",      set:"SET 1",  category:"BATSMAN",       role:"Batsman",overseas:true, basePrice:1.00,country:NZ, age:27},
   {name:"Harshal Patel",       set:"SET 1",  category:"FAST_BOWLER",   role:"Bowler", overseas:false,basePrice:1.00,country:IND,age:34},
   {name:"Khaleel Ahmed",       set:"SET 1",  category:"FAST_BOWLER",   role:"Bowler", overseas:false,basePrice:1.00,country:IND,age:27},
