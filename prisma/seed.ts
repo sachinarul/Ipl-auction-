@@ -7,12 +7,13 @@ type PlayerRole = 'BAT' | 'BOWL' | 'AR' | 'WK';
 interface SeedPlayer {
   id: number;
   name: string;
+  set: string;
+  category: string;
+  role: string;          // "Batsman" | "WK" | "AR" | "Bowler"
+  overseas: boolean;
+  basePrice: number;     // in Cr
   country: string;
   age: number;
-  role: PlayerRole;
-  subRole: string;
-  category: string;
-  basePrice: number;
   battingRating: number;
   bowlingRating: number;
   fieldingRating: number;
@@ -30,149 +31,172 @@ interface SeedPlayer {
   auctionStatus: string;
   currentTeam: string | null;
   soldPrice: number | null;
+  subRole: string;
 }
 
-const REAL_MARQUEES = [
-  { name: 'Virat Kohli', country: 'India', age: 36, role: 'BAT', subRole: 'Opening Batsman', basePrice: 2.0, targetOvr: 97 },
-  { name: 'Rohit Sharma', country: 'India', age: 37, role: 'BAT', subRole: 'Opening Batsman', basePrice: 2.0, targetOvr: 93 },
-  { name: 'Jasprit Bumrah', country: 'India', age: 31, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 2.0, targetOvr: 98 },
-  { name: 'Rishabh Pant', country: 'India', age: 27, role: 'WK', subRole: 'WK-Batsman', basePrice: 2.0, targetOvr: 95 },
-  { name: 'KL Rahul', country: 'India', age: 32, role: 'WK', subRole: 'WK-Batsman', basePrice: 2.0, targetOvr: 91 },
-  { name: 'Shubman Gill', country: 'India', age: 25, role: 'BAT', subRole: 'Opening Batsman', basePrice: 2.0, targetOvr: 92 },
-  { name: 'Yashasvi Jaiswal', country: 'India', age: 23, role: 'BAT', subRole: 'Opening Batsman', basePrice: 2.0, targetOvr: 93 },
-  { name: 'Hardik Pandya', country: 'India', age: 31, role: 'AR', subRole: 'Pace All-Rounder', basePrice: 2.0, targetOvr: 93 },
-  { name: 'Ravindra Jadeja', country: 'India', age: 36, role: 'AR', subRole: 'Spin All-Rounder', basePrice: 2.0, targetOvr: 94 },
-  { name: 'Pat Cummins', country: 'Australia', age: 31, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 2.0, targetOvr: 95 },
-  { name: 'Mitchell Starc', country: 'Australia', age: 35, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 2.0, targetOvr: 94 },
-  { name: 'Travis Head', country: 'Australia', age: 31, role: 'BAT', subRole: 'Opening Batsman', basePrice: 2.0, targetOvr: 96 },
-  { name: 'Jos Buttler', country: 'England', age: 34, role: 'WK', subRole: 'WK-Batsman', basePrice: 2.0, targetOvr: 95 },
-  { name: 'Heinrich Klaasen', country: 'South Africa', age: 33, role: 'WK', subRole: 'WK-Batsman', basePrice: 2.0, targetOvr: 96 },
-  { name: 'Rashid Khan', country: 'Afghanistan', age: 26, role: 'BOWL', subRole: 'Leg Spinner', basePrice: 2.0, targetOvr: 97 },
-  { name: 'Nicholas Pooran', country: 'West Indies', age: 29, role: 'WK', subRole: 'WK-Batsman', basePrice: 2.0, targetOvr: 94 },
-];
+interface PlayerDef {
+  name: string;
+  set: string;
+  category: string;
+  role: string;
+  overseas: boolean;
+  basePrice: number;
+  country: string;
+  age: number;
+  targetOvr: number;
+}
 
-const REAL_INDIAN_CAPPED = [
-  { name: 'Suryakumar Yadav', age: 34, role: 'BAT', subRole: 'Middle Order Batsman', basePrice: 2.0, targetOvr: 89 },
-  { name: 'Shreyas Iyer', age: 30, role: 'BAT', subRole: 'Middle Order Batsman', basePrice: 2.0, targetOvr: 84 },
-  { name: 'Ruturaj Gaikwad', age: 28, role: 'BAT', subRole: 'Opening Batsman', basePrice: 2.0, targetOvr: 85 },
-  { name: 'Rinku Singh', age: 27, role: 'BAT', subRole: 'Finisher', basePrice: 2.0, targetOvr: 84 },
-  { name: 'Tilak Varma', age: 22, role: 'BAT', subRole: 'Middle Order Batsman', basePrice: 1.5, targetOvr: 83 },
-  { name: 'Sanju Samson', age: 30, role: 'WK', subRole: 'WK-Batsman', basePrice: 2.0, targetOvr: 87 },
-  { name: 'Ishan Kishan', age: 26, role: 'WK', subRole: 'WK-Batsman', basePrice: 2.0, targetOvr: 82 },
-  { name: 'Mohammed Shami', age: 34, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 2.0, targetOvr: 87 },
-  { name: 'Mohammed Siraj', age: 30, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 2.0, targetOvr: 85 },
-  { name: 'Arshdeep Singh', age: 26, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 2.0, targetOvr: 85 },
-  { name: 'Yuzvendra Chahal', age: 34, role: 'BOWL', subRole: 'Leg Spinner', basePrice: 2.0, targetOvr: 85 },
-  { name: 'Kuldeep Yadav', age: 30, role: 'BOWL', subRole: 'Wrist Spinner', basePrice: 2.0, targetOvr: 86 },
-  { name: 'Axar Patel', age: 31, role: 'AR', subRole: 'Spin All-Rounder', basePrice: 2.0, targetOvr: 86 },
-  { name: 'Shivam Dube', age: 31, role: 'AR', subRole: 'Pace All-Rounder', basePrice: 1.5, targetOvr: 83 },
-  { name: 'Ravi Bishnoi', age: 24, role: 'BOWL', subRole: 'Leg Spinner', basePrice: 1.5, targetOvr: 82 },
-  { name: 'Ashwin Ravichandran', age: 38, role: 'BOWL', subRole: 'Off Spinner', basePrice: 1.5, targetOvr: 82 },
-  { name: 'Washington Sundar', age: 25, role: 'AR', subRole: 'Spin All-Rounder', basePrice: 1.5, targetOvr: 81 },
-  { name: 'Harshit Rana', age: 23, role: 'AR', subRole: 'Pace All-Rounder', basePrice: 1.5, targetOvr: 80 },
-  { name: 'Nitish Kumar Reddy', age: 22, role: 'AR', subRole: 'Pace All-Rounder', basePrice: 1.5, targetOvr: 80 },
-  { name: 'Dhruv Jurel', age: 23, role: 'WK', subRole: 'WK-Batsman', basePrice: 1.0, targetOvr: 80 },
-  { name: 'Abhishek Sharma', age: 24, role: 'BAT', subRole: 'Opening Batsman', basePrice: 1.5, targetOvr: 82 },
-  { name: 'Rajat Patidar', age: 31, role: 'BAT', subRole: 'Middle Order Batsman', basePrice: 1.5, targetOvr: 81 },
-  { name: 'Bhuvneshwar Kumar', age: 35, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 1.5, targetOvr: 82 },
-  { name: 'Deepak Chahar', age: 32, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 1.5, targetOvr: 81 },
-  { name: 'Harshal Patel', age: 34, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 1.5, targetOvr: 81 },
-  { name: 'Prasidh Krishna', age: 29, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 1.5, targetOvr: 79 },
-  { name: 'Avesh Khan', age: 27, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 1.5, targetOvr: 80 },
-  { name: 'T Natarajan', age: 33, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 1.0, targetOvr: 81 },
-  { name: 'Sandeep Sharma', age: 33, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 1.0, targetOvr: 81 },
-  { name: 'Umesh Yadav', age: 37, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 1.0, targetOvr: 78 },
-  { name: 'Shardul Thakur', age: 33, role: 'AR', subRole: 'Pace All-Rounder', basePrice: 1.5, targetOvr: 80 },
-  { name: 'Krunal Pandya', age: 34, role: 'AR', subRole: 'Spin All-Rounder', basePrice: 1.5, targetOvr: 81 },
-  { name: 'Venkatesh Iyer', age: 29, role: 'AR', subRole: 'Pace All-Rounder', basePrice: 1.5, targetOvr: 81 },
-  { name: 'Jitesh Sharma', age: 30, role: 'WK', subRole: 'WK-Batsman', basePrice: 1.0, targetOvr: 79 },
-  { name: 'Devdutt Padikkal', age: 24, role: 'BAT', subRole: 'Opening Batsman', basePrice: 1.0, targetOvr: 78 },
-  { name: 'Sai Sudharsan', age: 23, role: 'BAT', subRole: 'Opening Batsman', basePrice: 1.0, targetOvr: 81 },
-  { name: 'Riyan Parag', age: 22, role: 'BAT', subRole: 'Middle Order Batsman', basePrice: 1.0, targetOvr: 81 },
-  { name: 'Varun Chakravarthy', age: 33, role: 'BOWL', subRole: 'Wrist Spinner', basePrice: 1.5, targetOvr: 84 },
-  { name: 'Mayank Yadav', age: 22, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 1.0, targetOvr: 80 },
-  { name: 'Ishant Sharma', age: 37, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 0.75, targetOvr: 78 },
-  { name: 'Khaleel Ahmed', age: 28, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 1.5, targetOvr: 80 },
-  { name: 'Mukesh Kumar', age: 30, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 1.5, targetOvr: 80 },
-  { name: 'Rahul Chahar', age: 25, role: 'BOWL', subRole: 'Leg Spinner', basePrice: 1.0, targetOvr: 78 },
-  { name: 'Vijay Shankar', age: 35, role: 'AR', subRole: 'Pace All-Rounder', basePrice: 0.75, targetOvr: 77 },
-  { name: 'Manish Pandey', age: 36, role: 'BAT', subRole: 'Middle Order Batsman', basePrice: 0.75, targetOvr: 78 },
-  { name: 'Mayank Agarwal', age: 35, role: 'BAT', subRole: 'Opening Batsman', basePrice: 1.0, targetOvr: 78 },
-  { name: 'Ajinkya Rahane', age: 37, role: 'BAT', subRole: 'Middle Order Batsman', basePrice: 1.0, targetOvr: 79 },
-  { name: 'Prithvi Shaw', age: 25, role: 'BAT', subRole: 'Opening Batsman', basePrice: 1.0, targetOvr: 79 },
-  { name: 'Sarfaraz Khan', age: 27, role: 'BAT', subRole: 'Middle Order Batsman', basePrice: 1.0, targetOvr: 78 },
-  { name: 'Ramandeep Singh', age: 29, role: 'AR', subRole: 'Pace All-Rounder', basePrice: 0.75, targetOvr: 78 },
-  { name: 'Piyush Chawla', age: 37, role: 'BOWL', subRole: 'Leg Spinner', basePrice: 1.0, targetOvr: 80 },
-  { name: 'Amit Mishra', age: 43, role: 'BOWL', subRole: 'Leg Spinner', basePrice: 0.75, targetOvr: 77 },
-  { name: 'Mohit Sharma', age: 37, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 1.0, targetOvr: 80 },
-  { name: 'Jaydev Unadkat', age: 34, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 1.0, targetOvr: 78 }
-];
+const PLAYERS_TO_SEED: PlayerDef[] = [
+  // ==================================================
+  // SET: MARQUEE (47 Players, Base: 2.00 Cr)
+  // ==================================================
+  // CATEGORY: BATSMAN
+  { name: 'Aiden Markram', set: 'MARQUEE', category: 'BATSMAN', role: 'Batsman', overseas: true, basePrice: 2.0, country: 'South Africa', age: 30, targetOvr: 82 },
+  { name: 'Rinku Singh', set: 'MARQUEE', category: 'BATSMAN', role: 'Batsman', overseas: false, basePrice: 2.0, country: 'India', age: 27, targetOvr: 84 },
+  { name: 'Rohit Sharma', set: 'MARQUEE', category: 'BATSMAN', role: 'Batsman', overseas: false, basePrice: 2.0, country: 'India', age: 37, targetOvr: 92 },
+  { name: 'Ruturaj Gaikwad', set: 'MARQUEE', category: 'BATSMAN', role: 'Batsman', overseas: false, basePrice: 2.0, country: 'India', age: 28, targetOvr: 87 },
+  { name: 'Shimron Hetmyer', set: 'MARQUEE', category: 'BATSMAN', role: 'Batsman', overseas: true, basePrice: 2.0, country: 'West Indies', age: 28, targetOvr: 80 },
+  { name: 'Shreyas Iyer', set: 'MARQUEE', category: 'BATSMAN', role: 'Batsman', overseas: false, basePrice: 2.0, country: 'India', age: 30, targetOvr: 89 },
+  { name: 'Shubman Gill', set: 'MARQUEE', category: 'BATSMAN', role: 'Batsman', overseas: false, basePrice: 2.0, country: 'India', age: 25, targetOvr: 88 },
+  { name: 'Suryakumar Yadav', set: 'MARQUEE', category: 'BATSMAN', role: 'Batsman', overseas: false, basePrice: 2.0, country: 'India', age: 34, targetOvr: 93 },
+  { name: 'Tim David', set: 'MARQUEE', category: 'BATSMAN', role: 'Batsman', overseas: true, basePrice: 2.0, country: 'Australia', age: 28, targetOvr: 84 },
+  { name: 'Travis Head', set: 'MARQUEE', category: 'BATSMAN', role: 'Batsman', overseas: true, basePrice: 2.0, country: 'Australia', age: 31, targetOvr: 91 },
+  { name: 'Virat Kohli', set: 'MARQUEE', category: 'BATSMAN', role: 'Batsman', overseas: false, basePrice: 2.0, country: 'India', age: 36, targetOvr: 97 },
+  { name: 'Yashasvi Jaiswal', set: 'MARQUEE', category: 'BATSMAN', role: 'Batsman', overseas: false, basePrice: 2.0, country: 'India', age: 23, targetOvr: 87 },
 
-const REAL_OVERSEAS_CAPPED = [
-  { name: 'David Warner', country: 'Australia', age: 38, role: 'BAT', subRole: 'Opening Batsman', basePrice: 2.0, targetOvr: 85 },
-  { name: 'Faf du Plessis', country: 'South Africa', age: 40, role: 'BAT', subRole: 'Opening Batsman', basePrice: 2.0, targetOvr: 84 },
-  { name: 'Devon Conway', country: 'New Zealand', age: 33, role: 'BAT', subRole: 'Opening Batsman', basePrice: 2.0, targetOvr: 85 },
-  { name: 'Glenn Maxwell', country: 'Australia', age: 36, role: 'AR', subRole: 'Spin All-Rounder', basePrice: 2.0, targetOvr: 86 },
-  { name: 'Andre Russell', country: 'West Indies', age: 36, role: 'AR', subRole: 'Pace All-Rounder', basePrice: 2.0, targetOvr: 87 },
-  { name: 'Sunil Narine', country: 'West Indies', age: 36, role: 'AR', subRole: 'Spin All-Rounder', basePrice: 2.0, targetOvr: 88 },
-  { name: 'Marcus Stoinis', country: 'Australia', age: 35, role: 'AR', subRole: 'Pace All-Rounder', basePrice: 2.0, targetOvr: 84 },
-  { name: 'Mitchell Marsh', country: 'Australia', age: 33, role: 'AR', subRole: 'Pace All-Rounder', basePrice: 2.0, targetOvr: 83 },
-  { name: 'Sam Curran', country: 'England', age: 26, role: 'AR', subRole: 'Pace All-Rounder', basePrice: 2.0, targetOvr: 83 },
-  { name: 'Cameron Green', country: 'Australia', age: 25, role: 'AR', subRole: 'Pace All-Rounder', basePrice: 2.0, targetOvr: 84 },
-  { name: 'Liam Livingstone', country: 'England', age: 31, role: 'AR', subRole: 'Spin All-Rounder', basePrice: 2.0, targetOvr: 84 },
-  { name: 'Trent Boult', country: 'New Zealand', age: 35, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 2.0, targetOvr: 86 },
-  { name: 'Kagiso Rabada', country: 'South Africa', age: 29, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 2.0, targetOvr: 87 },
-  { name: 'Josh Hazlewood', country: 'Australia', age: 34, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 2.0, targetOvr: 85 },
-  { name: 'Quinton de Kock', country: 'South Africa', age: 32, role: 'WK', subRole: 'WK-Batsman', basePrice: 2.0, targetOvr: 85 },
-  { name: 'Phil Salt', country: 'England', age: 28, role: 'WK', subRole: 'WK-Batsman', basePrice: 2.0, targetOvr: 85 },
-  { name: 'Harry Brook', country: 'England', age: 26, role: 'BAT', subRole: 'Middle Order Batsman', basePrice: 2.0, targetOvr: 84 },
-  { name: 'Wanindu Hasaranga', country: 'Sri Lanka', age: 27, role: 'BOWL', subRole: 'Leg Spinner', basePrice: 2.0, targetOvr: 85 },
-  { name: 'Marco Jansen', country: 'South Africa', age: 24, role: 'AR', subRole: 'Pace All-Rounder', basePrice: 1.5, targetOvr: 83 },
-  { name: 'Noor Ahmad', country: 'Afghanistan', age: 19, role: 'BOWL', subRole: 'Wrist Spinner', basePrice: 1.5, targetOvr: 83 },
-  { name: 'Jonny Bairstow', country: 'England', age: 35, role: 'WK', subRole: 'WK-Batsman', basePrice: 1.5, targetOvr: 82 },
-  { name: 'Moeen Ali', country: 'England', age: 37, role: 'AR', subRole: 'Spin All-Rounder', basePrice: 1.5, targetOvr: 81 },
-  { name: 'Chris Woakes', country: 'England', age: 37, role: 'AR', subRole: 'Pace All-Rounder', basePrice: 1.5, targetOvr: 80 },
-  { name: 'Will Jacks', country: 'England', age: 26, role: 'BAT', subRole: 'Middle Order Batsman', basePrice: 1.5, targetOvr: 81 },
-  { name: 'Reece Topley', country: 'England', age: 32, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 1.25, targetOvr: 80 },
-  { name: 'Mark Wood', country: 'England', age: 36, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 2.0, targetOvr: 83 },
-  { name: 'Jofra Archer', country: 'England', age: 31, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 2.0, targetOvr: 82 },
-  { name: 'Steve Smith', country: 'Australia', age: 36, role: 'BAT', subRole: 'Middle Order Batsman', basePrice: 2.0, targetOvr: 84 },
-  { name: 'Tim David', country: 'Australia', age: 30, role: 'BAT', subRole: 'Finisher', basePrice: 1.5, targetOvr: 80 },
-  { name: 'Jake Fraser-McGurk', country: 'Australia', age: 24, role: 'BAT', subRole: 'Opening Batsman', basePrice: 2.0, targetOvr: 81 },
-  { name: 'Matthew Wade', country: 'Australia', age: 38, role: 'WK', subRole: 'WK-Batsman', basePrice: 1.0, targetOvr: 78 },
-  { name: 'Adam Zampa', country: 'Australia', age: 34, role: 'BOWL', subRole: 'Leg Spinner', basePrice: 2.0, targetOvr: 83 },
-  { name: 'Nathan Ellis', country: 'Australia', age: 31, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 1.25, targetOvr: 79 },
-  { name: 'Spencer Johnson', country: 'Australia', age: 30, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 2.0, targetOvr: 80 },
-  { name: 'Kane Williamson', country: 'New Zealand', age: 35, role: 'BAT', subRole: 'Middle Order Batsman', basePrice: 2.0, targetOvr: 83 },
-  { name: 'Daryl Mitchell', country: 'New Zealand', age: 35, role: 'AR', subRole: 'Pace All-Rounder', basePrice: 2.0, targetOvr: 82 },
-  { name: 'Mitchell Santner', country: 'New Zealand', age: 34, role: 'AR', subRole: 'Spin All-Rounder', basePrice: 1.5, targetOvr: 81 },
-  { name: 'Glenn Phillips', country: 'New Zealand', age: 29, role: 'BAT', subRole: 'Finisher', basePrice: 1.5, targetOvr: 81 },
-  { name: 'Rachin Ravindra', country: 'New Zealand', age: 26, role: 'AR', subRole: 'Spin All-Rounder', basePrice: 1.5, targetOvr: 82 },
-  { name: 'Lockie Ferguson', country: 'New Zealand', age: 34, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 1.5, targetOvr: 81 },
-  { name: 'Matt Henry', country: 'New Zealand', age: 34, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 1.5, targetOvr: 80 },
-  { name: 'Tim Southee', country: 'New Zealand', age: 37, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 1.5, targetOvr: 80 },
-  { name: 'Gerald Coetzee', country: 'South Africa', age: 25, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 1.25, targetOvr: 80 },
-  { name: 'David Miller', country: 'South Africa', age: 36, role: 'BAT', subRole: 'Finisher', basePrice: 2.0, targetOvr: 83 },
-  { name: 'Aiden Markram', country: 'South Africa', age: 29, role: 'BAT', subRole: 'Middle Order Batsman', basePrice: 2.0, targetOvr: 81 },
-  { name: 'Tristan Stubbs', country: 'South Africa', age: 25, role: 'WK', subRole: 'WK-Batsman', basePrice: 1.5, targetOvr: 82 },
-  { name: 'Lungi Ngidi', country: 'South Africa', age: 30, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 1.25, targetOvr: 79 },
-  { name: 'Anrich Nortje', country: 'South Africa', age: 32, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 2.0, targetOvr: 82 },
-  { name: 'Keshav Maharaj', country: 'South Africa', age: 36, role: 'BOWL', subRole: 'Slow Left-Arm Orthodox', basePrice: 1.0, targetOvr: 80 },
-  { name: 'Rovman Powell', country: 'West Indies', age: 32, role: 'BAT', subRole: 'Finisher', basePrice: 1.5, targetOvr: 80 },
-  { name: 'Shimron Hetmyer', country: 'West Indies', age: 29, role: 'BAT', subRole: 'Finisher', basePrice: 1.5, targetOvr: 80 },
-  { name: 'Sherfane Rutherford', country: 'West Indies', age: 27, role: 'AR', subRole: 'Pace All-Rounder', basePrice: 1.0, targetOvr: 78 },
-  { name: 'Romario Shepherd', country: 'West Indies', age: 31, role: 'AR', subRole: 'Pace All-Rounder', basePrice: 1.0, targetOvr: 79 },
-  { name: 'Jason Holder', country: 'West Indies', age: 34, role: 'AR', subRole: 'Pace All-Rounder', basePrice: 1.5, targetOvr: 80 },
-  { name: 'Alzarri Joseph', country: 'West Indies', age: 29, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 1.5, targetOvr: 80 },
-  { name: 'Shai Hope', country: 'West Indies', age: 32, role: 'WK', subRole: 'WK-Batsman', basePrice: 1.25, targetOvr: 79 },
-  { name: 'Rahmanullah Gurbaz', country: 'Afghanistan', age: 24, role: 'WK', subRole: 'WK-Batsman', basePrice: 1.5, targetOvr: 81 },
-  { name: 'Fazalhaq Farooqi', country: 'Afghanistan', age: 25, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 1.5, targetOvr: 80 },
-  { name: 'Matheesha Pathirana', country: 'Sri Lanka', age: 23, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 2.0, targetOvr: 83 },
-  { name: 'Maheesh Theekshana', country: 'Sri Lanka', age: 25, role: 'BOWL', subRole: 'Off Spinner', basePrice: 1.5, targetOvr: 81 },
-  { name: 'Mustafizur Rahman', country: 'Bangladesh', age: 30, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 1.5, targetOvr: 81 },
-  { name: 'Shakib Al Hasan', country: 'Bangladesh', age: 39, role: 'AR', subRole: 'Spin All-Rounder', basePrice: 1.5, targetOvr: 82 },
-  { name: 'Sikandar Raza', country: 'Zimbabwe', age: 40, role: 'AR', subRole: 'Spin All-Rounder', basePrice: 1.0, targetOvr: 79 },
-  { name: 'Josh Little', country: 'Ireland', age: 26, role: 'BOWL', subRole: 'Fast Bowler', basePrice: 1.0, targetOvr: 78 }
+  // CATEGORY: WICKET_KEEPER
+  { name: 'Heinrich Klaasen', set: 'MARQUEE', category: 'WICKET_KEEPER', role: 'WK', overseas: true, basePrice: 2.0, country: 'South Africa', age: 33, targetOvr: 90 },
+  { name: 'Jos Buttler', set: 'MARQUEE', category: 'WICKET_KEEPER', role: 'WK', overseas: true, basePrice: 2.0, country: 'England', age: 34, targetOvr: 92 },
+  { name: 'KL Rahul', set: 'MARQUEE', category: 'WICKET_KEEPER', role: 'WK', overseas: false, basePrice: 2.0, country: 'India', age: 32, targetOvr: 90 },
+  { name: 'MS Dhoni', set: 'MARQUEE', category: 'WICKET_KEEPER', role: 'WK', overseas: false, basePrice: 2.0, country: 'India', age: 44, targetOvr: 82 },
+  { name: 'Nicholas Pooran', set: 'MARQUEE', category: 'WICKET_KEEPER', role: 'WK', overseas: true, basePrice: 2.0, country: 'West Indies', age: 29, targetOvr: 86 },
+  { name: 'Phil Salt', set: 'MARQUEE', category: 'WICKET_KEEPER', role: 'WK', overseas: true, basePrice: 2.0, country: 'England', age: 28, targetOvr: 84 },
+  { name: 'Rishabh Pant', set: 'MARQUEE', category: 'WICKET_KEEPER', role: 'WK', overseas: false, basePrice: 2.0, country: 'India', age: 27, targetOvr: 94 },
+  { name: 'Sanju Samson', set: 'MARQUEE', category: 'WICKET_KEEPER', role: 'WK', overseas: false, basePrice: 2.0, country: 'India', age: 30, targetOvr: 87 },
+
+  // CATEGORY: ALL_ROUNDER
+  { name: 'Axar Patel', set: 'MARQUEE', category: 'ALL_ROUNDER', role: 'AR', overseas: false, basePrice: 2.0, country: 'India', age: 31, targetOvr: 78 },
+  { name: 'Hardik Pandya', set: 'MARQUEE', category: 'ALL_ROUNDER', role: 'AR', overseas: false, basePrice: 2.0, country: 'India', age: 31, targetOvr: 86 },
+  { name: 'Marco Jansen', set: 'MARQUEE', category: 'ALL_ROUNDER', role: 'AR', overseas: true, basePrice: 2.0, country: 'South Africa', age: 24, targetOvr: 76 },
+  { name: 'Marcus Stoinis', set: 'MARQUEE', category: 'ALL_ROUNDER', role: 'AR', overseas: true, basePrice: 2.0, country: 'Australia', age: 35, targetOvr: 81 },
+  { name: 'Mitchell Marsh', set: 'MARQUEE', category: 'ALL_ROUNDER', role: 'AR', overseas: true, basePrice: 2.0, country: 'Australia', age: 33, targetOvr: 83 },
+  { name: 'Ravindra Jadeja', set: 'MARQUEE', category: 'ALL_ROUNDER', role: 'AR', overseas: false, basePrice: 2.0, country: 'India', age: 36, targetOvr: 85 },
+  { name: 'Sam Curran', set: 'MARQUEE', category: 'ALL_ROUNDER', role: 'AR', overseas: true, basePrice: 2.0, country: 'England', age: 26, targetOvr: 78 },
+  { name: 'Shivam Dube', set: 'MARQUEE', category: 'ALL_ROUNDER', role: 'AR', overseas: false, basePrice: 2.0, country: 'India', age: 31, targetOvr: 80 },
+  { name: 'Sunil Narine', set: 'MARQUEE', category: 'ALL_ROUNDER', role: 'AR', overseas: true, basePrice: 2.0, country: 'West Indies', age: 36, targetOvr: 84 },
+  { name: 'Will Jacks', set: 'MARQUEE', category: 'ALL_ROUNDER', role: 'AR', overseas: true, basePrice: 2.0, country: 'England', age: 26, targetOvr: 82 },
+
+  // CATEGORY: FAST_BOWLER
+  { name: 'Arshdeep Singh', set: 'MARQUEE', category: 'FAST_BOWLER', role: 'Bowler', overseas: false, basePrice: 2.0, country: 'India', age: 26, targetOvr: 84 },
+  { name: 'Bhuvneshwar Kumar', set: 'MARQUEE', category: 'FAST_BOWLER', role: 'Bowler', overseas: false, basePrice: 2.0, country: 'India', age: 35, targetOvr: 80 },
+  { name: 'Jasprit Bumrah', set: 'MARQUEE', category: 'FAST_BOWLER', role: 'Bowler', overseas: false, basePrice: 2.0, country: 'India', age: 31, targetOvr: 98 },
+  { name: 'Jofra Archer', set: 'MARQUEE', category: 'FAST_BOWLER', role: 'Bowler', overseas: true, basePrice: 2.0, country: 'England', age: 31, targetOvr: 80 },
+  { name: 'Josh Hazlewood', set: 'MARQUEE', category: 'FAST_BOWLER', role: 'Bowler', overseas: true, basePrice: 2.0, country: 'Australia', age: 34, targetOvr: 92 },
+  { name: 'Kagiso Rabada', set: 'MARQUEE', category: 'FAST_BOWLER', role: 'Bowler', overseas: true, basePrice: 2.0, country: 'South Africa', age: 29, targetOvr: 93 },
+  { name: 'Lockie Ferguson', set: 'MARQUEE', category: 'FAST_BOWLER', role: 'Bowler', overseas: true, basePrice: 2.0, country: 'New Zealand', age: 33, targetOvr: 80 },
+  { name: 'Mitchell Starc', set: 'MARQUEE', category: 'FAST_BOWLER', role: 'Bowler', overseas: true, basePrice: 2.0, country: 'Australia', age: 35, targetOvr: 90 },
+  { name: 'Mohammad Shami', set: 'MARQUEE', category: 'FAST_BOWLER', role: 'Bowler', overseas: false, basePrice: 2.0, country: 'India', age: 34, targetOvr: 91 },
+  { name: 'Mohammad Siraj', set: 'MARQUEE', category: 'FAST_BOWLER', role: 'Bowler', overseas: false, basePrice: 2.0, country: 'India', age: 30, targetOvr: 87 },
+  { name: 'Pat Cummins', set: 'MARQUEE', category: 'FAST_BOWLER', role: 'Bowler', overseas: true, basePrice: 2.0, country: 'Australia', age: 31, targetOvr: 94 },
+  { name: 'Trent Boult', set: 'MARQUEE', category: 'FAST_BOWLER', role: 'Bowler', overseas: true, basePrice: 2.0, country: 'New Zealand', age: 35, targetOvr: 90 },
+
+  // CATEGORY: SPINNER
+  { name: 'Kuldeep Yadav', set: 'MARQUEE', category: 'SPINNER', role: 'Bowler', overseas: false, basePrice: 2.0, country: 'India', age: 30, targetOvr: 86 },
+  { name: 'Noor Ahmad', set: 'MARQUEE', category: 'SPINNER', role: 'Bowler', overseas: true, basePrice: 2.0, country: 'Afghanistan', age: 19, targetOvr: 80 },
+  { name: 'Rashid Khan', set: 'MARQUEE', category: 'SPINNER', role: 'Bowler', overseas: true, basePrice: 2.0, country: 'Afghanistan', age: 26, targetOvr: 96 },
+  { name: 'Varun Chakravarthy', set: 'MARQUEE', category: 'SPINNER', role: 'Bowler', overseas: false, basePrice: 2.0, country: 'India', age: 33, targetOvr: 88 },
+  { name: 'Yuzvendra Chahal', set: 'MARQUEE', category: 'SPINNER', role: 'Bowler', overseas: false, basePrice: 2.0, country: 'India', age: 34, targetOvr: 88 },
+
+  // ==================================================
+  // SET 1 (23 Players, Base: 1.00 Cr)
+  // ==================================================
+  // CATEGORY: ALL_ROUNDER
+  { name: 'Abhishek Sharma', set: 'SET 1', category: 'ALL_ROUNDER', role: 'AR', overseas: false, basePrice: 1.0, country: 'India', age: 24, targetOvr: 83 },
+  { name: 'Azmatullah Omarzai', set: 'SET 1', category: 'ALL_ROUNDER', role: 'AR', overseas: true, basePrice: 1.0, country: 'Afghanistan', age: 23, targetOvr: 80 },
+  { name: 'Krunal Pandya', set: 'SET 1', category: 'ALL_ROUNDER', role: 'AR', overseas: false, basePrice: 1.0, country: 'India', age: 34, targetOvr: 80 },
+  { name: 'Mitchell Santner', set: 'SET 1', category: 'ALL_ROUNDER', role: 'AR', overseas: true, basePrice: 1.0, country: 'New Zealand', age: 33, targetOvr: 81 },
+  { name: 'Riyan Parag', set: 'SET 1', category: 'ALL_ROUNDER', role: 'AR', overseas: false, basePrice: 1.0, country: 'India', age: 22, targetOvr: 81 },
+  { name: 'Romario Shepherd', set: 'SET 1', category: 'ALL_ROUNDER', role: 'AR', overseas: true, basePrice: 1.0, country: 'West Indies', age: 30, targetOvr: 79 },
+  { name: 'Shardul Thakur', set: 'SET 1', category: 'ALL_ROUNDER', role: 'AR', overseas: false, basePrice: 1.0, country: 'India', age: 33, targetOvr: 80 },
+  { name: 'Washington Sundar', set: 'SET 1', category: 'ALL_ROUNDER', role: 'AR', overseas: false, basePrice: 1.0, country: 'India', age: 25, targetOvr: 81 },
+
+  // CATEGORY: BATSMAN
+  { name: 'Glenn Phillips', set: 'SET 1', category: 'BATSMAN', role: 'Batsman', overseas: true, basePrice: 1.0, country: 'New Zealand', age: 29, targetOvr: 81 },
+  { name: 'Rajat Patidar', set: 'SET 1', category: 'BATSMAN', role: 'Batsman', overseas: false, basePrice: 1.0, country: 'India', age: 31, targetOvr: 81 },
+  { name: 'Rovman Powell', set: 'SET 1', category: 'BATSMAN', role: 'Batsman', overseas: true, basePrice: 1.0, country: 'West Indies', age: 32, targetOvr: 80 },
+  { name: 'Sai Sudharsan', set: 'SET 1', category: 'BATSMAN', role: 'Batsman', overseas: false, basePrice: 1.0, country: 'India', age: 23, targetOvr: 81 },
+  { name: 'Sherfane Rutherford', set: 'SET 1', category: 'BATSMAN', role: 'Batsman', overseas: true, basePrice: 1.0, country: 'West Indies', age: 27, targetOvr: 78 },
+  { name: 'Tilak Varma', set: 'SET 1', category: 'BATSMAN', role: 'Batsman', overseas: false, basePrice: 1.0, country: 'India', age: 22, targetOvr: 83 },
+  { name: 'Tristan Stubbs', set: 'SET 1', category: 'BATSMAN', role: 'Batsman', overseas: true, basePrice: 1.0, country: 'South Africa', age: 25, targetOvr: 82 },
+
+  // CATEGORY: WICKET_KEEPER
+  { name: 'Dhruv Jurel', set: 'SET 1', category: 'WICKET_KEEPER', role: 'WK', overseas: false, basePrice: 1.0, country: 'India', age: 23, targetOvr: 80 },
+
+  // CATEGORY: FAST_BOWLER
+  { name: 'Avesh Khan', set: 'SET 1', category: 'FAST_BOWLER', role: 'Bowler', overseas: false, basePrice: 1.0, country: 'India', age: 27, targetOvr: 80 },
+  { name: 'Deepak Chahar', set: 'SET 1', category: 'FAST_BOWLER', role: 'Bowler', overseas: false, basePrice: 1.0, country: 'India', age: 32, targetOvr: 81 },
+  { name: 'Harshal Patel', set: 'SET 1', category: 'FAST_BOWLER', role: 'Bowler', overseas: false, basePrice: 1.0, country: 'India', age: 34, targetOvr: 81 },
+  { name: 'Khaleel Ahmed', set: 'SET 1', category: 'FAST_BOWLER', role: 'Bowler', overseas: false, basePrice: 1.0, country: 'India', age: 28, targetOvr: 80 },
+  { name: 'Mayank Yadav', set: 'SET 1', category: 'FAST_BOWLER', role: 'Bowler', overseas: false, basePrice: 1.0, country: 'India', age: 22, targetOvr: 80 },
+  { name: 'Prasidh Krishna', set: 'SET 1', category: 'FAST_BOWLER', role: 'Bowler', overseas: false, basePrice: 1.0, country: 'India', age: 29, targetOvr: 79 },
+  { name: 'T Natarajan', set: 'SET 1', category: 'FAST_BOWLER', role: 'Bowler', overseas: false, basePrice: 1.0, country: 'India', age: 33, targetOvr: 81 },
+
+  // ==================================================
+  // SET 2 (19 Players, Base: 75 Lakh = 0.75 Cr)
+  // ==================================================
+  // CATEGORY: BATSMAN
+  { name: 'Shaik Rasheed', set: 'SET 2', category: 'BATSMAN', role: 'Batsman', overseas: false, basePrice: 0.75, country: 'India', age: 22, targetOvr: 74 },
+  { name: 'Yash Dubey', set: 'SET 2', category: 'BATSMAN', role: 'Batsman', overseas: false, basePrice: 0.75, country: 'India', age: 25, targetOvr: 72 },
+  { name: 'Nehal Wadhera', set: 'SET 2', category: 'BATSMAN', role: 'Batsman', overseas: false, basePrice: 0.75, country: 'India', age: 25, targetOvr: 72 },
+  { name: 'Towhid Hridoy', set: 'SET 2', category: 'BATSMAN', role: 'Batsman', overseas: true, basePrice: 0.75, country: 'Bangladesh', age: 24, targetOvr: 72 },
+  { name: 'Abhinav Manohar', set: 'SET 2', category: 'BATSMAN', role: 'Batsman', overseas: false, basePrice: 0.75, country: 'India', age: 27, targetOvr: 72 },
+
+  // CATEGORY: ALL_ROUNDER
+  { name: 'Piyush Chawla', set: 'SET 2', category: 'ALL_ROUNDER', role: 'AR', overseas: false, basePrice: 0.75, country: 'India', age: 37, targetOvr: 80 },
+  { name: 'Jayant Yadav', set: 'SET 2', category: 'ALL_ROUNDER', role: 'AR', overseas: false, basePrice: 0.75, country: 'India', age: 35, targetOvr: 74 },
+  { name: 'Sean Williams', set: 'SET 2', category: 'ALL_ROUNDER', role: 'AR', overseas: true, basePrice: 0.75, country: 'Zimbabwe', age: 36, targetOvr: 68 },
+  { name: 'Bas de Leede', set: 'SET 2', category: 'ALL_ROUNDER', role: 'AR', overseas: true, basePrice: 0.75, country: 'Netherlands', age: 24, targetOvr: 68 },
+
+  // CATEGORY: WICKET_KEEPER
+  { name: 'Ryan Rickelton', set: 'SET 2', category: 'WICKET_KEEPER', role: 'WK', overseas: true, basePrice: 0.75, country: 'South Africa', age: 26, targetOvr: 74 },
+  { name: 'Jordan Cox', set: 'SET 2', category: 'WICKET_KEEPER', role: 'WK', overseas: true, basePrice: 0.75, country: 'England', age: 24, targetOvr: 68 },
+  { name: 'Lorcan Tucker', set: 'SET 2', category: 'WICKET_KEEPER', role: 'WK', overseas: true, basePrice: 0.75, country: 'Ireland', age: 28, targetOvr: 66 },
+
+  // CATEGORY: FAST_BOWLER
+  { name: 'Mohit Sharma', set: 'SET 2', category: 'FAST_BOWLER', role: 'Bowler', overseas: false, basePrice: 0.75, country: 'India', age: 37, targetOvr: 80 },
+  { name: 'Sandeep Sharma', set: 'SET 2', category: 'FAST_BOWLER', role: 'Bowler', overseas: false, basePrice: 0.75, country: 'India', age: 32, targetOvr: 81 },
+  { name: 'Chetan Sakariya', set: 'SET 2', category: 'FAST_BOWLER', role: 'Bowler', overseas: false, basePrice: 0.75, country: 'India', age: 25, targetOvr: 74 },
+  { name: 'Yash Thakur', set: 'SET 2', category: 'FAST_BOWLER', role: 'Bowler', overseas: false, basePrice: 0.75, country: 'India', age: 27, targetOvr: 74 },
+  { name: 'Akash Madhwal', set: 'SET 2', category: 'FAST_BOWLER', role: 'Bowler', overseas: false, basePrice: 0.75, country: 'India', age: 30, targetOvr: 74 },
+  { name: 'Luke Wood', set: 'SET 2', category: 'FAST_BOWLER', role: 'Bowler', overseas: true, basePrice: 0.75, country: 'England', age: 28, targetOvr: 74 },
+  { name: 'Matthew Forde', set: 'SET 2', category: 'FAST_BOWLER', role: 'Bowler', overseas: true, basePrice: 0.75, country: 'West Indies', age: 24, targetOvr: 72 },
+
+  // ==================================================
+  // SET 3 (16 Players, Base: 50 Lakh = 0.50 Cr)
+  // ==================================================
+  // CATEGORY: BATSMAN
+  { name: 'Ambati Rayudu', set: 'SET 3', category: 'BATSMAN', role: 'Batsman', overseas: false, basePrice: 0.50, country: 'India', age: 39, targetOvr: 79 },
+  { name: 'Anmolpreet Singh', set: 'SET 3', category: 'BATSMAN', role: 'Batsman', overseas: false, basePrice: 0.50, country: 'India', age: 26, targetOvr: 72 },
+  { name: 'Yash Dhull', set: 'SET 3', category: 'BATSMAN', role: 'Batsman', overseas: false, basePrice: 0.50, country: 'India', age: 23, targetOvr: 72 },
+  { name: 'Chris Gayle', set: 'SET 3', category: 'BATSMAN', role: 'Batsman', overseas: true, basePrice: 0.50, country: 'West Indies', age: 45, targetOvr: 80 },
+  { name: 'Samarth Vyas', set: 'SET 3', category: 'BATSMAN', role: 'Batsman', overseas: false, basePrice: 0.50, country: 'India', age: 25, targetOvr: 66 },
+  { name: 'Arpit Vasavada', set: 'SET 3', category: 'BATSMAN', role: 'Batsman', overseas: false, basePrice: 0.50, country: 'India', age: 31, targetOvr: 70 },
+
+  // CATEGORY: ALL_ROUNDER
+  { name: 'Jacques Kallis', set: 'SET 3', category: 'ALL_ROUNDER', role: 'AR', overseas: true, basePrice: 0.50, country: 'South Africa', age: 49, targetOvr: 82 },
+  { name: 'Abhinav Sadarangani', set: 'SET 3', category: 'ALL_ROUNDER', role: 'AR', overseas: false, basePrice: 0.50, country: 'India', age: 27, targetOvr: 66 },
+
+  // CATEGORY: WICKET_KEEPER
+  { name: 'Wriddhiman Saha', set: 'SET 3', category: 'WICKET_KEEPER', role: 'WK', overseas: false, basePrice: 0.50, country: 'India', age: 40, targetOvr: 70 },
+  { name: 'B R Sharath', set: 'SET 3', category: 'WICKET_KEEPER', role: 'WK', overseas: false, basePrice: 0.50, country: 'India', age: 28, targetOvr: 68 },
+  { name: 'Upendra Yadav', set: 'SET 3', category: 'WICKET_KEEPER', role: 'WK', overseas: false, basePrice: 0.50, country: 'India', age: 22, targetOvr: 62 },
+
+  // CATEGORY: FAST_BOWLER
+  { name: 'Mayank Markande', set: 'SET 3', category: 'FAST_BOWLER', role: 'Bowler', overseas: false, basePrice: 0.50, country: 'India', age: 28, targetOvr: 72 },
+  { name: 'Karn Sharma', set: 'SET 3', category: 'FAST_BOWLER', role: 'Bowler', overseas: false, basePrice: 0.50, country: 'India', age: 36, targetOvr: 72 },
+  { name: 'Akash Singh', set: 'SET 3', category: 'FAST_BOWLER', role: 'Bowler', overseas: false, basePrice: 0.50, country: 'India', age: 22, targetOvr: 70 },
+  { name: 'Mitch McClenaghan', set: 'SET 3', category: 'FAST_BOWLER', role: 'Bowler', overseas: true, basePrice: 0.50, country: 'New Zealand', age: 38, targetOvr: 72 },
+  { name: 'Brett Lee', set: 'SET 3', category: 'FAST_BOWLER', role: 'Bowler', overseas: true, basePrice: 0.50, country: 'Australia', age: 49, targetOvr: 84 },
 ];
 
 function generateStats(role: PlayerRole, overall: number): { matches: number; runs: number; wickets: number; strikeRate: number; economy: number } {
@@ -203,56 +227,52 @@ function generateStats(role: PlayerRole, overall: number): { matches: number; ru
 
 function buildPlayer(
   id: number,
-  name: string,
-  country: string,
-  age: number,
-  role: PlayerRole,
-  subRole: string,
-  category: string,
-  basePrice: number,
-  isCapped: boolean,
-  targetOvr?: number
+  def: PlayerDef
 ): SeedPlayer {
-  let T = targetOvr || 80;
+  let T = def.targetOvr || 80;
   T = Math.min(99, Math.max(50, T));
+
+  const roleCode: PlayerRole = def.role === 'Batsman' ? 'BAT' :
+                           def.role === 'Bowler' ? 'BOWL' :
+                           def.role === 'WK' ? 'WK' : 'AR';
 
   let battingRating = 10;
   let bowlingRating = 10;
   let fieldingRating = Math.min(99, Math.max(40, T + Math.floor(Math.random() * 8) - 4));
   let formRating = Math.min(99, Math.max(40, T + Math.floor(Math.random() * 10) - 5));
 
-  if (role === 'BAT') {
+  if (roleCode === 'BAT') {
     battingRating = Math.min(99, Math.max(40, T + Math.floor(Math.random() * 4) - 1));
     bowlingRating = Math.floor(10 + Math.random() * 15);
-  } else if (role === 'BOWL') {
+  } else if (roleCode === 'BOWL') {
     bowlingRating = Math.min(99, Math.max(40, T + Math.floor(Math.random() * 4) - 1));
     battingRating = Math.floor(10 + Math.random() * 15);
-  } else if (role === 'AR') {
+  } else if (roleCode === 'AR') {
     battingRating = Math.min(99, Math.max(40, T - 4 + Math.floor(Math.random() * 5)));
     bowlingRating = Math.min(99, Math.max(40, T - 4 + Math.floor(Math.random() * 5)));
-  } else if (role === 'WK') {
+  } else if (roleCode === 'WK') {
     battingRating = Math.min(99, Math.max(40, T + Math.floor(Math.random() * 4) - 2));
     fieldingRating = Math.min(99, Math.max(40, T + 4 + Math.floor(Math.random() * 4) - 2));
     bowlingRating = Math.floor(5 + Math.random() * 5);
   }
 
   const overallRating = Math.round(
-    role === 'BAT' ? battingRating * 0.5 + fieldingRating * 0.3 + formRating * 0.2 :
-    role === 'BOWL' ? bowlingRating * 0.5 + fieldingRating * 0.3 + formRating * 0.2 :
-    role === 'AR' ? (battingRating + bowlingRating) * 0.3 + fieldingRating * 0.2 + formRating * 0.2 :
+    roleCode === 'BAT' ? battingRating * 0.5 + fieldingRating * 0.3 + formRating * 0.2 :
+    roleCode === 'BOWL' ? bowlingRating * 0.5 + fieldingRating * 0.3 + formRating * 0.2 :
+    roleCode === 'AR' ? (battingRating + bowlingRating) * 0.3 + fieldingRating * 0.2 + formRating * 0.2 :
     battingRating * 0.45 + fieldingRating * 0.35 + formRating * 0.2
   );
 
   let potentialRating = 75;
   let experienceRating = 40;
 
-  if (age >= 18 && age <= 24) {
+  if (def.age >= 18 && def.age <= 24) {
     experienceRating = Math.floor(20 + Math.random() * 20);
     potentialRating = Math.floor(82 + Math.random() * 15);
-  } else if (age >= 25 && age <= 31) {
+  } else if (def.age >= 25 && def.age <= 31) {
     experienceRating = Math.floor(45 + Math.random() * 30);
     potentialRating = Math.min(99, overallRating + Math.floor(Math.random() * 8));
-  } else if (age >= 32 && age <= 36) {
+  } else if (def.age >= 32 && def.age <= 36) {
     experienceRating = Math.floor(78 + Math.random() * 12);
     potentialRating = Math.max(40, overallRating - Math.floor(Math.random() * 10));
   } else {
@@ -263,22 +283,23 @@ function buildPlayer(
   const popularity = Math.min(99, Math.max(20, Math.floor(overallRating * 0.85 + Math.random() * 12)));
   const mvsRaw = (overallRating * 0.45) + (formRating * 0.20) + (popularity * 0.15) + (experienceRating * 0.10) + (potentialRating * 0.10);
   let marketValueScore = Math.round(mvsRaw);
-  if (category === 'Marquee Players') {
+  if (def.set === 'MARQUEE') {
     marketValueScore = Math.min(99, marketValueScore + 8);
   }
   marketValueScore = Math.min(99, Math.max(40, marketValueScore));
 
-  const stats = generateStats(role, overallRating);
+  const stats = generateStats(roleCode, overallRating);
 
   return {
     id,
-    name,
-    country,
-    age,
-    role,
-    subRole,
-    category,
-    basePrice,
+    name: def.name,
+    set: def.set,
+    category: def.category,
+    role: def.role,
+    overseas: def.overseas,
+    basePrice: def.basePrice,
+    country: def.country,
+    age: def.age,
     battingRating,
     bowlingRating,
     fieldingRating,
@@ -292,46 +313,18 @@ function buildPlayer(
     auctionStatus: 'AVAILABLE',
     currentTeam: null,
     soldPrice: null,
+    subRole: roleCode === 'BAT' ? 'Batsman' :
+             roleCode === 'BOWL' ? (def.category === 'SPINNER' ? 'Spin Bowler' : 'Fast Bowler') :
+             roleCode === 'AR' ? 'All-Rounder' : 'WK-Batsman'
   };
 }
 
 export function generateFullAuctionPool(): SeedPlayer[] {
   const pool: SeedPlayer[] = [];
-  const usedNames = new Set<string>();
   let nextId = 1;
 
-  // 1. ADD REAL MARQUEES (16 players)
-  REAL_MARQUEES.forEach(m => {
-    pool.push(buildPlayer(
-      nextId++, m.name, m.country, m.age, m.role as PlayerRole, m.subRole, 'Marquee Players', m.basePrice, true, m.targetOvr
-    ));
-    usedNames.add(m.name);
-  });
-
-  // 2. ADD REAL CAPPED INDIANS
-  REAL_INDIAN_CAPPED.forEach(m => {
-    let cat = 'Indian Capped Batsmen';
-    if (m.role === 'BOWL') cat = m.subRole.includes('Spinner') ? 'Indian Spinners' : 'Indian Fast Bowlers';
-    else if (m.role === 'AR') cat = 'Indian All Rounders';
-    else if (m.role === 'WK') cat = 'Indian Capped Wicket Keepers';
-
-    pool.push(buildPlayer(
-      nextId++, m.name, 'India', m.age, m.role as PlayerRole, m.subRole, cat, m.basePrice, true, m.targetOvr
-    ));
-    usedNames.add(m.name);
-  });
-
-  // 3. ADD REAL OVERSEAS CAPPED
-  REAL_OVERSEAS_CAPPED.forEach(m => {
-    let cat = 'Overseas Batsmen';
-    if (m.role === 'BOWL') cat = m.subRole.includes('Spinner') ? 'Overseas Spinners' : 'Overseas Fast Bowlers';
-    else if (m.role === 'AR') cat = m.subRole.includes('Spin') ? 'Overseas Spin All Rounders' : 'Overseas Pace All Rounders';
-    else if (m.role === 'WK') cat = 'Overseas Wicket Keepers';
-
-    pool.push(buildPlayer(
-      nextId++, m.name, m.country, m.age, m.role as PlayerRole, m.subRole, cat, m.basePrice, true, m.targetOvr
-    ));
-    usedNames.add(m.name);
+  PLAYERS_TO_SEED.forEach(def => {
+    pool.push(buildPlayer(nextId++, def));
   });
 
   return pool;

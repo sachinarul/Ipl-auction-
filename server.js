@@ -39,39 +39,11 @@ const TEAMS = [
 
 // V3: New IPL structured player sets
 const SET_ORDER = [
-  'SET 1: Marquee Players',
-  'SET 2: Capped Indian Batsmen',
-  'SET 3: Overseas Batsmen',
-  'SET 4: Capped Indian Wicketkeepers',
-  'SET 5: Overseas Wicketkeepers',
-  'SET 6: Indian All-Rounders',
-  'SET 7: Overseas All-Rounders',
-  'SET 8: Indian Fast Bowlers',
-  'SET 9: Overseas Fast Bowlers',
-  'SET 10: Indian Spinners',
-  'SET 11: Overseas Spinners',
-  'SET 12: Emerging Players',
-  'SET 13: Uncapped Players',
+  'MARQUEE',
+  'SET 1',
+  'SET 2',
+  'SET 3'
 ];
-
-// V3: Map old categories to new dynamic set categories
-const CATEGORY_REMAP = {
-  'Marquee Players': 'SET 1: Marquee Players',
-  'Indian Capped Batsmen': 'SET 2: Capped Indian Batsmen',
-  'Overseas Batsmen': 'SET 3: Overseas Batsmen',
-  'Indian Capped Wicket Keepers': 'SET 4: Capped Indian Wicketkeepers',
-  'Overseas Wicket Keepers': 'SET 5: Overseas Wicketkeepers',
-  'Indian All Rounders': 'SET 6: Indian All-Rounders',
-  'Overseas Pace All Rounders': 'SET 7: Overseas All-Rounders',
-  'Overseas Spin All Rounders': 'SET 7: Overseas All-Rounders',
-  'Indian Fast Bowlers': 'SET 8: Indian Fast Bowlers',
-  'Overseas Fast Bowlers': 'SET 9: Overseas Fast Bowlers',
-  'Indian Spinners': 'SET 10: Indian Spinners',
-  'Overseas Spinners': 'SET 11: Overseas Spinners',
-  'Emerging Players': 'SET 12: Emerging Players',
-  'Indian Uncapped Batsmen': 'SET 13: Uncapped Players',
-  'Indian Uncapped Wicket Keepers': 'SET 13: Uncapped Players',
-};
 
 app.prepare().then(() => {
   const server = express();
@@ -384,9 +356,9 @@ app.prepare().then(() => {
 
     const player = room.playerQueue[room.currentIndex];
     
-    // V3: Category transition check
+    // V3: Set transition check
     const prevCategory = room.currentCategory;
-    const newCategory = player.category;
+    const newCategory = player.set;
 
     if (prevCategory !== newCategory) {
       room.currentCategory = newCategory;
@@ -705,10 +677,9 @@ app.prepare().then(() => {
           name: p.name,
           country: p.country,
           flag: FLAG_MAP[p.country] || '🌍',
-          overseas: p.country !== 'India',
-          capped: p.category !== 'Indian Uncapped Batsmen' &&
-                  p.category !== 'Indian Uncapped Wicket Keepers' &&
-                  p.category !== 'Emerging Players',
+          overseas: p.overseas,
+          capped: true,
+          set: p.set,
           role: p.role,
           subRole: p.subRole || '',
           age: p.age,
@@ -740,35 +711,14 @@ app.prepare().then(() => {
             : 'Emerging (<20 games)',
         }));
 
-        // V3: Reclassify into 16-set categories
-        playersData = playersData.map(p => {
-          let cat = CATEGORY_REMAP[p.category] || p.category;
-          let playerCapped = p.capped;
-
-          // Re-categorize uncapped Indian bowlers/ARs (below OVR 79) to uncapped sets
-          if (p.country === 'India') {
-            if (p.category === 'Indian All Rounders' && p.overall < 79) {
-              cat = 'SET 8: Uncapped Indian All-Rounders';
-              playerCapped = false;
-              p.basePrice = p.overall < 70 ? 0.20 : p.overall < 75 ? 0.30 : 0.40;
-            } else if ((p.category === 'Indian Fast Bowlers' || p.category === 'Indian Spinners') && p.overall < 79) {
-              cat = 'SET 10: Uncapped Indian Bowlers';
-              playerCapped = false;
-              p.basePrice = p.overall < 70 ? 0.20 : p.overall < 75 ? 0.30 : 0.40;
-            }
-          }
-
-          return { ...p, category: cat, capped: playerCapped };
-        });
-
       } catch (err) {
         console.error("Missing players-data.json database catalog", err);
       }
 
-      // V3: Build the player queue in 16-set order (each set shuffled randomly)
+      // V3: Build the player queue in 4-set order (each set shuffled randomly)
       const playerQueue = [];
       SET_ORDER.forEach(set => {
-        const setPlayers = playersData.filter(p => p.category === set).sort(() => Math.random() - 0.5);
+        const setPlayers = playersData.filter(p => p.set === set).sort(() => Math.random() - 0.5);
         playerQueue.push(...setPlayers);
       });
 

@@ -470,19 +470,10 @@ export default function RoomLobby() {
             
             <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
               {(setOrder && setOrder.length > 0 ? setOrder : [
-                'SET 1: Marquee Players',
-                'SET 2: Capped Indian Batsmen',
-                'SET 3: Overseas Batsmen',
-                'SET 4: Capped Indian Wicketkeepers',
-                'SET 5: Overseas Wicketkeepers',
-                'SET 6: Indian All-Rounders',
-                'SET 7: Overseas All-Rounders',
-                'SET 8: Indian Fast Bowlers',
-                'SET 9: Overseas Fast Bowlers',
-                'SET 10: Indian Spinners',
-                'SET 11: Overseas Spinners',
-                'SET 12: Emerging Players',
-                'SET 13: Uncapped Players'
+                'MARQUEE',
+                'SET 1',
+                'SET 2',
+                'SET 3'
               ]).map((setName, index) => {
                 const isSetDisabled = disabledSets && disabledSets.includes(setName);
                 return (
@@ -497,7 +488,7 @@ export default function RoomLobby() {
                     <div className="flex items-center space-x-2">
                       <span className="text-[10px] font-black text-av-muted">#{index + 1}</span>
                       <span className={`font-bold ${isSetDisabled ? 'line-through text-av-muted' : 'text-white'}`}>
-                        {setName.replace(/^SET\s+\d+:\s+/, '')}
+                        {setName}
                       </span>
                     </div>
 
