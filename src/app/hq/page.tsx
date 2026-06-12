@@ -45,17 +45,24 @@ export default function FranchiseHQ() {
   const [compareTeamA, setCompareTeamA] = useState<string>('');
   const [compareTeamB, setCompareTeamB] = useState<string>('');
 
+  // viewedTeamId State for inspecting teammate teams
+  const [viewedTeamId, setViewedTeamId] = useState<string>('');
+  const isOwnTeam = viewedTeamId === userTeamId || !viewedTeamId;
+
   // Redirect if no team selected
   useEffect(() => {
     if (!userTeamId) {
       router.push('/');
+    } else if (!viewedTeamId) {
+      setViewedTeamId(userTeamId);
     }
-  }, [userTeamId, router]);
+  }, [userTeamId, viewedTeamId, router]);
 
   // Sync submitted team state
   useEffect(() => {
-    if (userTeamId && submittedTeams[userTeamId]) {
-      const submission = submittedTeams[userTeamId];
+    const targetTeamId = viewedTeamId || userTeamId;
+    if (targetTeamId && submittedTeams[targetTeamId]) {
+      const submission = submittedTeams[targetTeamId];
       if (submission.submitted) {
         const xi = Array(11).fill(null);
         if (submission.playingXI) {
@@ -69,12 +76,24 @@ export default function FranchiseHQ() {
         setViceCaptainId(submission.viceCaptainId || null);
         setSubmittedLocal(true);
       } else {
+        if (!isOwnTeam) {
+          setPlayingXI(Array(11).fill(null));
+          setImpactPlayer(null);
+          setCaptainId(null);
+          setViceCaptainId(null);
+        }
         setSubmittedLocal(false);
       }
     } else {
+      if (!isOwnTeam) {
+        setPlayingXI(Array(11).fill(null));
+        setImpactPlayer(null);
+        setCaptainId(null);
+        setViceCaptainId(null);
+      }
       setSubmittedLocal(false);
     }
-  }, [submittedTeams, userTeamId]);
+  }, [submittedTeams, viewedTeamId, userTeamId, isOwnTeam]);
 
   // Select initial ranked team and compare teams
   useEffect(() => {
@@ -109,7 +128,7 @@ export default function FranchiseHQ() {
     );
   }
 
-  const userTeam = teams.find((t) => t.id === userTeamId);
+  const userTeam = teams.find((t) => t.id === (viewedTeamId || userTeamId));
   const squad = userTeam ? userTeam.squad : [];
 
   const filteredSquad = squad.filter((player) => {
@@ -255,7 +274,7 @@ export default function FranchiseHQ() {
 
   // Click-to-Swap & Bench Assignment
   const handleSlotClick = (index: number | 'impact') => {
-    if (submittedLocal) return;
+    if (submittedLocal || !isOwnTeam) return;
 
     const playerInSlot = index === 'impact' ? impactPlayer : playingXI[index];
 
@@ -444,10 +463,27 @@ export default function FranchiseHQ() {
           <div className="flex items-center space-x-4">
             <span className="text-5xl sm:text-6xl print:text-4xl">{userTeam?.emoji || '💛'}</span>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-wide uppercase print:text-xl print:text-black">
-                {userTeam?.name || 'Franchise Headquarters'}
-              </h1>
-              <p className="text-sm text-av-muted font-semibold mt-1 print:hidden">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase print:text-xl print:text-black">
+                  {userTeam?.name || 'Franchise Headquarters'}
+                </h1>
+                
+                {/* Team Selector Dropdown */}
+                {teams && teams.length > 0 && (
+                  <select
+                    value={viewedTeamId}
+                    onChange={(e) => setViewedTeamId(e.target.value)}
+                    className="bg-void border border-border-custom px-3 py-1 rounded-lg text-xs font-bold text-white focus:outline-none focus:border-neon-gold print:hidden max-w-[220px] cursor-pointer"
+                  >
+                    {teams.map(t => (
+                      <option key={t.id} value={t.id}>
+                        {t.emoji} {t.name} {t.id === userTeamId ? '(You)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              <p className="text-xs sm:text-sm text-av-muted font-semibold mt-1 print:hidden">
                 Franchise Strategy:{' '}
                 <span className="text-neon-gold uppercase font-bold">{userTeam?.strategy || 'balanced'} AI core</span>
               </p>
@@ -472,14 +508,15 @@ export default function FranchiseHQ() {
         </motion.div>
 
         {/* Tab Selection Bar */}
-        <div className="flex border-b border-border-custom gap-2 overflow-x-auto print:hidden">
+        <div className="grid grid-cols-3 border-b border-border-custom text-center print:hidden">
           <button
             onClick={() => setActiveTab('roster')}
-            className={`px-6 py-3 font-bold text-sm uppercase tracking-wider relative transition-colors shrink-0 ${
+            className={`py-3 font-bold text-xs sm:text-sm uppercase tracking-wider relative transition-colors ${
               activeTab === 'roster' ? 'text-white' : 'text-av-muted hover:text-white'
             }`}
           >
-            <span>Squad Roster</span>
+            <span className="hidden sm:inline">Squad Roster</span>
+            <span className="sm:hidden">Roster</span>
             {activeTab === 'roster' && (
               <motion.div layoutId="activeTabUnderline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-neon-gold" />
             )}
@@ -487,18 +524,19 @@ export default function FranchiseHQ() {
           
           <button
             onClick={() => setActiveTab('lineup')}
-            className={`px-6 py-3 font-bold text-sm uppercase tracking-wider relative transition-colors flex items-center space-x-1.5 shrink-0 ${
+            className={`py-3 font-bold text-xs sm:text-sm uppercase tracking-wider relative transition-colors flex items-center justify-center space-x-1.5 ${
               activeTab === 'lineup' ? 'text-white' : 'text-av-muted hover:text-white'
             }`}
           >
-            <span>Submit Playing XI</span>
+            <span className="hidden sm:inline">Submit Playing XI</span>
+            <span className="sm:hidden">Playing XI</span>
             {squad.length > 0 && (
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+              <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold ${
                 submittedLocal 
                   ? 'bg-neon-green/20 text-neon-green' 
                   : 'bg-neon-gold/20 text-neon-gold'
               }`}>
-                {submittedLocal ? 'Submitted' : 'Pending'}
+                {submittedLocal ? '✓' : '!'}
               </span>
             )}
             {activeTab === 'lineup' && (
@@ -508,14 +546,15 @@ export default function FranchiseHQ() {
 
           <button
             onClick={() => setActiveTab('rankings')}
-            className={`px-6 py-3 font-bold text-sm uppercase tracking-wider relative transition-colors flex items-center space-x-1.5 shrink-0 ${
+            className={`py-3 font-bold text-xs sm:text-sm uppercase tracking-wider relative transition-colors flex items-center justify-center space-x-1.5 ${
               activeTab === 'rankings' ? 'text-white' : 'text-av-muted hover:text-white'
             }`}
           >
-            <span>AI Power Rankings</span>
+            <span className="hidden sm:inline">AI Power Rankings</span>
+            <span className="sm:hidden">Rankings</span>
             {aiRankings && (
-              <span className="bg-neon-green/20 text-neon-green text-[10px] px-1.5 py-0.5 rounded-full font-bold">
-                Generated
+              <span className="bg-neon-green/20 text-neon-green text-[9px] px-1.5 py-0.2 rounded-full font-bold">
+                ✓
               </span>
             )}
             {activeTab === 'rankings' && (
@@ -527,6 +566,29 @@ export default function FranchiseHQ() {
         {/* ==================== TAB 1: ROSTER ==================== */}
         {activeTab === 'roster' && (
           <div className="space-y-6 print:hidden">
+            {/* Call-to-action to build Playing XI */}
+            {squad.length > 0 && (
+              <div className="glass-panel p-4 rounded-xl border border-neon-cyan/20 bg-neon-cyan/5 flex flex-col sm:flex-row justify-between items-center gap-3">
+                <div className="flex items-center space-x-2.5 text-xs text-left">
+                  <Sparkle className="h-5 w-5 text-neon-cyan animate-pulse shrink-0" />
+                  <div>
+                    <span className="font-bold text-white uppercase block">Playing XI Lineup Builder</span>
+                    <span className="text-av-muted">
+                      {submittedLocal 
+                        ? `${isOwnTeam ? "Your team" : "This team"} has submitted their matchday Playing XI. View projections in the AI Power Rankings tab!`
+                        : `Draft and submit ${isOwnTeam ? "your" : "this team's"} Playing XI & Impact Player to enable power rankings standings simulation.`}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setActiveTab('lineup')}
+                  className="bg-neon-cyan text-midnight px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center space-x-1.5 shrink-0 hover:scale-[1.02] active:scale-[0.98] transition-transform cursor-pointer"
+                >
+                  <span>{submittedLocal ? "View Lineup" : "Build Playing XI"}</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
             {/* Post-Auction Franchise Report */}
             {squad.length > 0 && (
               <div className="glass-panel rounded-2xl p-6 bg-gradient-to-r from-neon-gold/5 to-transparent border border-neon-gold/20">
@@ -832,18 +894,18 @@ export default function FranchiseHQ() {
                       <p className="text-[10px] text-av-muted mt-0.5">Drag & drop or tap to swap players and set batting order</p>
                     </div>
 
-                    {!submittedLocal && (
+                    {!submittedLocal && isOwnTeam && (
                       <div className="flex gap-2">
                         <button
                           onClick={handleAutofill}
-                          className="bg-glass border border-border-custom hover:bg-glass-hover text-white text-xs px-3 py-1.5 rounded-lg font-bold flex items-center space-x-1"
+                          className="bg-glass border border-border-custom hover:bg-glass-hover text-white text-xs px-3 py-1.5 rounded-lg font-bold flex items-center space-x-1 cursor-pointer"
                         >
                           <Sparkles className="h-3 w-3 text-neon-gold" />
                           <span>Auto-fill</span>
                         </button>
                         <button
                           onClick={handleResetLineup}
-                          className="bg-glass border border-border-custom hover:bg-glass-hover text-neon-red text-xs px-3 py-1.5 rounded-lg font-bold flex items-center space-x-1"
+                          className="bg-glass border border-border-custom hover:bg-glass-hover text-neon-red text-xs px-3 py-1.5 rounded-lg font-bold flex items-center space-x-1 cursor-pointer"
                         >
                           <Trash2 className="h-3 w-3" />
                           <span>Reset</span>
@@ -862,7 +924,7 @@ export default function FranchiseHQ() {
                       return (
                         <div
                           key={idx}
-                          draggable={!submittedLocal && player !== null}
+                          draggable={!submittedLocal && isOwnTeam && player !== null}
                           onDragStart={(e) => handleDragStart(e, idx)}
                           onDragOver={handleDragOver}
                           onDrop={(e) => handleDrop(e, idx)}
@@ -905,7 +967,7 @@ export default function FranchiseHQ() {
                             )}
                           </div>
 
-                          {player && !submittedLocal && (
+                          {player && !submittedLocal && isOwnTeam && (
                             <div className="flex items-center space-x-1" onClick={(e) => e.stopPropagation()}>
                               <button
                                 onClick={() => handleSetCaptain(player.id)}
@@ -940,7 +1002,7 @@ export default function FranchiseHQ() {
 
                     {/* Impact Player Slot */}
                     <div
-                      draggable={!submittedLocal && impactPlayer !== null}
+                      draggable={!submittedLocal && isOwnTeam && impactPlayer !== null}
                       onDragStart={(e) => handleDragStart(e, 'impact')}
                       onDragOver={handleDragOver}
                       onDrop={(e) => handleDrop(e, 'impact')}
@@ -981,7 +1043,7 @@ export default function FranchiseHQ() {
                         )}
                       </div>
 
-                      {impactPlayer && !submittedLocal && (
+                      {impactPlayer && !submittedLocal && isOwnTeam && (
                         <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => handleRemovePlayer('impact')}
@@ -1070,31 +1132,37 @@ export default function FranchiseHQ() {
                           <CheckCircle className="h-4 w-4 shrink-0 mt-0.5" />
                           <div>
                             <div className="font-bold uppercase tracking-wide">Squad Submitted</div>
-                            <div className="text-av-muted text-[10px] mt-0.5">Your squad is official. Waiting for other managers to submit or final rankings generation.</div>
+                            <div className="text-av-muted text-[10px] mt-0.5">This squad is official. Waiting for other managers to submit or final rankings generation.</div>
                           </div>
                         </div>
 
-                        {!lockedRankings && !rankingsPublished && (
+                        {!lockedRankings && !rankingsPublished && isOwnTeam && (
                           <button
                             onClick={() => setSubmittedLocal(false)}
-                            className="w-full bg-glass hover:bg-glass-hover text-white text-xs py-2 rounded-lg font-bold border border-border-custom"
+                            className="w-full bg-glass hover:bg-glass-hover text-white text-xs py-2 rounded-lg font-bold border border-border-custom cursor-pointer"
                           >
                             Modify Lineup
                           </button>
                         )}
                       </div>
                     ) : (
-                      <button
-                        onClick={handleSubmitSquad}
-                        disabled={!isValidLineup}
-                        className={`w-full py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-300 ${
-                          isValidLineup 
-                            ? 'bg-neon-green text-midnight neon-glow-green hover:scale-[1.02]' 
-                            : 'bg-glass border border-border-custom text-av-muted cursor-not-allowed'
-                        }`}
-                      >
-                        Submit Squad Submission
-                      </button>
+                      isOwnTeam ? (
+                        <button
+                          onClick={handleSubmitSquad}
+                          disabled={!isValidLineup}
+                          className={`w-full py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-300 ${
+                            isValidLineup 
+                              ? 'bg-neon-green text-midnight neon-glow-green hover:scale-[1.02] cursor-pointer' 
+                              : 'bg-glass border border-border-custom text-av-muted cursor-not-allowed'
+                          }`}
+                        >
+                          Submit Squad Submission
+                        </button>
+                      ) : (
+                        <div className="bg-glass border border-border-custom p-3 rounded-xl text-center text-xs text-av-muted font-bold">
+                          Not Submitted by Franchise Owner
+                        </div>
+                      )
                     )}
                   </div>
 
@@ -1133,7 +1201,7 @@ export default function FranchiseHQ() {
                               </div>
                             </div>
 
-                            {!submittedLocal && (
+                            {!submittedLocal && isOwnTeam && (
                               <div className="flex gap-1">
                                 <button
                                   onClick={() => {

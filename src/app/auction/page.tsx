@@ -859,51 +859,28 @@ export default function AuctionArena() {
             Admin Console
           </h3>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-col gap-2">
             <button
               onClick={() => triggerAdminAction(paused ? 'resume' : 'pause')}
-              className="bg-glass border border-border-custom hover:bg-glass-hover text-[10px] font-bold p-2.5 rounded-xl flex items-center justify-center space-x-1.5"
+              className="w-full bg-glass border border-border-custom hover:bg-glass-hover text-[10px] font-bold p-2.5 rounded-xl flex items-center justify-center space-x-1.5"
             >
               <Pause className="h-3.5 w-3.5" />
               <span>{paused ? 'Resume' : 'Pause'}</span>
             </button>
-            <button
-              onClick={() => triggerAdminAction('skip')}
-              className="bg-glass border border-border-custom hover:bg-glass-hover text-[10px] font-bold p-2.5 rounded-xl flex items-center justify-center space-x-1.5"
-            >
-              <SkipForward className="h-3.5 w-3.5" />
-              <span>Skip</span>
-            </button>
-            <button
-              onClick={() => triggerAdminAction('unsold')}
-              className="bg-glass border border-border-custom hover:bg-glass-hover text-[10px] font-bold p-2.5 rounded-xl flex items-center justify-center space-x-1.5"
-            >
-              <Ban className="h-3.5 w-3.5" />
-              <span>Force Unsold</span>
-            </button>
-            <button
-              onClick={() => triggerAdminAction('force-sell')}
-              disabled={!currentBidderId}
-              className="bg-glass border border-border-custom hover:bg-glass-hover text-[10px] font-bold p-2.5 rounded-xl flex items-center justify-center space-x-1.5 disabled:opacity-50"
-            >
-              <Trophy className="h-3.5 w-3.5" />
-              <span>Force Sell</span>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => triggerAdminAction('restart-timer')}
-              className="bg-glass border border-border-custom hover:bg-glass-hover text-[10px] font-bold p-2 py-1.5 rounded-lg text-center"
-            >
-              Reset Timer
-            </button>
-            <button
-              onClick={() => triggerAdminAction('reset')}
-              className="bg-glass border border-border-custom hover:bg-glass-hover text-[10px] font-bold p-2 py-1.5 rounded-lg text-center text-neon-red"
-            >
-              Reset Room
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => triggerAdminAction('restart-timer')}
+                className="bg-glass border border-border-custom hover:bg-glass-hover text-[10px] font-bold p-2 py-1.5 rounded-lg text-center"
+              >
+                Reset Timer
+              </button>
+              <button
+                onClick={() => triggerAdminAction('reset')}
+                className="bg-glass border border-border-custom hover:bg-glass-hover text-[10px] font-bold p-2 py-1.5 rounded-lg text-center text-neon-red"
+              >
+                Reset Room
+              </button>
+            </div>
           </div>
 
           <div className="border-t border-border-custom/50 pt-3 mt-1.5">
@@ -1061,27 +1038,15 @@ export default function AuctionArena() {
             {isAdmin && (
               <div className="glass-panel rounded-2xl p-4 space-y-3.5">
                 <h3 className="text-xs font-extrabold uppercase tracking-widest text-neon-gold">Admin Console</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <button onClick={() => triggerAdminAction(paused ? 'resume' : 'pause')} className="bg-glass border border-border-custom hover:bg-glass-hover text-[10px] font-bold p-2.5 rounded-xl flex items-center justify-center space-x-1.5">
+                <div className="flex flex-col gap-2">
+                  <button onClick={() => triggerAdminAction(paused ? 'resume' : 'pause')} className="w-full bg-glass border border-border-custom hover:bg-glass-hover text-[10px] font-bold p-2.5 rounded-xl flex items-center justify-center space-x-1.5">
                     <Pause className="h-3.5 w-3.5" />
                     <span>{paused ? 'Resume' : 'Pause'}</span>
                   </button>
-                  <button onClick={() => triggerAdminAction('skip')} className="bg-glass border border-border-custom hover:bg-glass-hover text-[10px] font-bold p-2.5 rounded-xl flex items-center justify-center space-x-1.5">
-                    <SkipForward className="h-3.5 w-3.5" />
-                    <span>Skip</span>
-                  </button>
-                  <button onClick={() => triggerAdminAction('unsold')} className="bg-glass border border-border-custom hover:bg-glass-hover text-[10px] font-bold p-2.5 rounded-xl flex items-center justify-center space-x-1.5">
-                    <Ban className="h-3.5 w-3.5" />
-                    <span>Force Unsold</span>
-                  </button>
-                  <button onClick={() => triggerAdminAction('force-sell')} disabled={!currentBidderId} className="bg-glass border border-border-custom hover:bg-glass-hover text-[10px] font-bold p-2.5 rounded-xl flex items-center justify-center space-x-1.5 disabled:opacity-50">
-                    <Trophy className="h-3.5 w-3.5" />
-                    <span>Force Sell</span>
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button onClick={() => triggerAdminAction('restart-timer')} className="bg-glass border border-border-custom hover:bg-glass-hover text-[10px] font-bold p-2 py-1.5 rounded-lg text-center">Reset Timer</button>
-                  <button onClick={() => triggerAdminAction('reset')} className="bg-glass border border-border-custom hover:bg-glass-hover text-[10px] font-bold p-2 py-1.5 rounded-lg text-center text-neon-red">Reset Room</button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button onClick={() => triggerAdminAction('restart-timer')} className="bg-glass border border-border-custom hover:bg-glass-hover text-[10px] font-bold p-2 py-1.5 rounded-lg text-center">Reset Timer</button>
+                    <button onClick={() => triggerAdminAction('reset')} className="bg-glass border border-border-custom hover:bg-glass-hover text-[10px] font-bold p-2 py-1.5 rounded-lg text-center text-neon-red">Reset Room</button>
+                  </div>
                 </div>
 
                 <div className="border-t border-border-custom/50 pt-3 mt-1.5">

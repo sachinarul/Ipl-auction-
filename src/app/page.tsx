@@ -18,6 +18,7 @@ export default function LandingPage() {
     errorMsg,
     createRoom,
     joinRoom,
+    rejoinRoom,
     selectUserTeam,
     setUserName,
     clearError,
@@ -38,6 +39,20 @@ export default function LandingPage() {
   
   const [joinCode, setJoinCode] = useState('');
   const [justActioned, setJustActioned] = useState(false);
+
+  const [cachedRoomCode, setCachedRoomCode] = useState<string | null>(null);
+  const [cachedPlayerToken, setCachedPlayerToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const code = localStorage.getItem('av_room_code');
+      const token = localStorage.getItem('av_player_token');
+      if (code && token) {
+        setCachedRoomCode(code);
+        setCachedPlayerToken(token);
+      }
+    }
+  }, []);
 
   // Redirect to Lobby when roomCode is populated AND justActioned is true
   useEffect(() => {
@@ -89,6 +104,39 @@ export default function LandingPage() {
             <ShieldAlert className="h-4 w-4 shrink-0" />
             <span>{errorMsg}</span>
           </div>
+        )}
+
+        {cachedRoomCode && cachedPlayerToken && !roomCode && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full max-w-md p-4 mb-6 bg-neon-gold/5 border border-neon-gold/30 rounded-xl flex items-center justify-between gap-4"
+          >
+            <div className="flex items-center space-x-2.5 text-xs">
+              <Shield className="h-5 w-5 text-neon-gold shrink-0 animate-pulse" />
+              <div className="text-left">
+                <span className="font-bold text-white uppercase block">Unfinished Session Detected</span>
+                <span className="text-av-muted">Room Code: <span className="text-neon-gold font-bold">{cachedRoomCode}</span></span>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setJustActioned(true);
+                rejoinRoom(cachedRoomCode, cachedPlayerToken, (res) => {
+                  if (!res.success) {
+                    localStorage.removeItem('av_room_code');
+                    localStorage.removeItem('av_player_token');
+                    setCachedRoomCode(null);
+                    setCachedPlayerToken(null);
+                    alert(`Failed to rejoin session: ${res.reason || 'Room not found'}`);
+                  }
+                });
+              }}
+              className="bg-neon-gold text-midnight px-3.5 py-1.5 rounded-lg font-bold text-xs uppercase tracking-wider shrink-0 cursor-pointer"
+            >
+              Rejoin
+            </button>
+          </motion.div>
         )}
 
         <AnimatePresence mode="wait">
