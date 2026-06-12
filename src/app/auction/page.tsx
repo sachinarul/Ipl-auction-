@@ -208,7 +208,9 @@ export default function AuctionArena() {
       delete pcs.current[socketId];
     }
     if (remoteAudios.current[socketId]) {
-      remoteAudios.current[socketId].srcObject = null;
+      const audio = remoteAudios.current[socketId];
+      audio.srcObject = null;
+      audio.remove();
       delete remoteAudios.current[socketId];
     }
   };
@@ -243,6 +245,8 @@ export default function AuctionArena() {
       if (!audio) {
         audio = new Audio();
         audio.autoplay = true;
+        audio.style.display = 'none';
+        document.body.appendChild(audio);
         remoteAudios.current[targetSocketId] = audio;
       }
       audio.srcObject = stream;
@@ -289,8 +293,18 @@ export default function AuctionArena() {
           });
           setVoiceParticipants(participantsMap);
 
-          res.others.forEach((otherSocketId: string) => {
-            createPeerConnection(otherSocketId);
+          res.others.forEach(async (otherSocketId: string) => {
+            const pc = createPeerConnection(otherSocketId);
+            try {
+              const offer = await pc.createOffer();
+              await pc.setLocalDescription(offer);
+              socket.emit('voice-signal', {
+                targetSocketId: otherSocketId,
+                signal: { sdp: offer }
+              });
+            } catch (err) {
+              console.error("Error creating WebRTC offer:", err);
+            }
           });
 
           startSpeakingDetection(stream);
