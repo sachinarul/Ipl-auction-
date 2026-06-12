@@ -412,7 +412,7 @@ function PlayerCard({ player, idx, setAccent, teamBadge, currentPlayer }: {
       </div>
 
       {/* Player Name */}
-      <div className="font-black text-white text-sm leading-snug tracking-wide uppercase mb-3 flex-1">
+      <div className="font-black text-white text-sm leading-snug tracking-wide uppercase mb-3 grow">
         {player.name}
       </div>
 
