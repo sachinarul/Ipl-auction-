@@ -92,7 +92,7 @@ interface AuctionStore {
   placeBid: (callback?: (res: { success: boolean; reason?: string }) => void) => void;
   sendChatMessage: (text: string) => void;
   triggerAdminAction: (action: string, extra?: any) => void;
-  submitTeam: (playingXI: Player[], impactPlayer: Player, captainId: number, viceCaptainId: number, callback?: (res: { success: boolean; reason?: string }) => void) => void;
+  submitTeam: (playingXI: Array<Player | null>, impactPlayer: Player | null, captainId: number | null, viceCaptainId: number | null, submitted: boolean, callback?: (res: { success: boolean; reason?: string }) => void) => void;
   clearError: () => void;
 }
 
@@ -448,14 +448,14 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
     }
   },
 
-  submitTeam: (playingXI, impactPlayer, captainId, viceCaptainId, callback) => {
+  submitTeam: (playingXI, impactPlayer, captainId, viceCaptainId, submitted, callback) => {
     const { roomCode } = get();
     if (roomCode) {
-      socket.emit('submit-team', { roomCode, playingXI, impactPlayer, captainId, viceCaptainId }, (res: { success: boolean; reason?: string }) => {
+      socket.emit('submit-team', { roomCode, playingXI, impactPlayer, captainId, viceCaptainId, submitted }, (res: { success: boolean; reason?: string }) => {
         if (res.success) {
           if (callback) callback({ success: true });
         } else {
-          set({ errorMsg: res.reason || 'Failed to submit Playing XI' });
+          set({ errorMsg: res.reason || 'Failed to update Playing XI' });
           if (callback) callback({ success: false, reason: res.reason });
         }
       });

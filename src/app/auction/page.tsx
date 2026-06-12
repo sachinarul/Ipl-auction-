@@ -596,7 +596,7 @@ export default function AuctionArena() {
             <h3 className="text-2xl font-black tracking-tight text-white mb-2">MEGA AUCTION COMPLETE</h3>
             <p className="text-sm text-av-muted max-w-sm mb-6">All players have been drafted. Review your final squad in HQ.</p>
             <button
-              onClick={() => router.push('/hq?tab=lineup')}
+              onClick={() => router.push('/lineup')}
               className="bg-neon-gold text-midnight px-6 py-2.5 rounded-lg font-bold flex items-center space-x-2"
             >
               <span>Go to HQ</span>
@@ -1200,7 +1200,7 @@ export default function AuctionArena() {
               key={tab.key}
               onClick={() => {
                 if (tab.key === 'lineup') {
-                  router.push('/hq?tab=lineup');
+                  router.push('/lineup');
                 } else {
                   setMobileTab(tab.key as any);
                 }

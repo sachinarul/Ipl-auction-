@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuctionStore } from '@/store/auctionStore';
-import { Trophy, Home, BarChart3, Database, ShieldAlert, Zap, Menu, X } from 'lucide-react';
+import { Trophy, Home, BarChart3, Database, ShieldAlert, Zap, Menu, X, Users } from 'lucide-react';
 import { useState } from 'react';
 
 export default function Navbar() {
@@ -16,6 +16,7 @@ export default function Navbar() {
   const navItems = [
     { label: 'Home', href: '/', icon: Home },
     { label: 'Auction Arena', href: '/auction', icon: Zap },
+    { label: 'Lineup Builder', href: '/lineup', icon: Users },
     { label: 'Franchise HQ', href: '/hq', icon: ShieldAlert },
     { label: 'Player Database', href: '/players', icon: Database },
     { label: 'Analytics', href: '/analytics', icon: BarChart3 },

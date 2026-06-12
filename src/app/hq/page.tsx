@@ -15,6 +15,7 @@ import Navbar from '@/components/shared/Navbar';
 export default function FranchiseHQ() {
   const router = useRouter();
   const { 
+    roomCode,
     userTeamId, 
     teams, 
     phase,
@@ -74,42 +75,58 @@ export default function FranchiseHQ() {
     }
   }, []);
 
-  // Sync submitted team state
+  // Sync submitted team state and drafts
   useEffect(() => {
     const targetTeamId = viewedTeamId || userTeamId;
-    if (targetTeamId && submittedTeams[targetTeamId]) {
-      const submission = submittedTeams[targetTeamId];
-      if (submission.submitted) {
-        const xi = Array(11).fill(null);
-        if (submission.playingXI) {
-          submission.playingXI.forEach((p, idx) => {
-            if (idx < 11) xi[idx] = p;
-          });
-        }
-        setPlayingXI(xi);
-        setImpactPlayer(submission.impactPlayer || null);
-        setCaptainId(submission.captainId || null);
-        setViceCaptainId(submission.viceCaptainId || null);
-        setSubmittedLocal(true);
-      } else {
-        if (!isOwnTeam) {
-          setPlayingXI(Array(11).fill(null));
-          setImpactPlayer(null);
-          setCaptainId(null);
-          setViceCaptainId(null);
-        }
-        setSubmittedLocal(false);
+    if (!targetTeamId) return;
+
+    const submission = submittedTeams[targetTeamId];
+    if (submission) {
+      // If we have data on the server (either official submission or draft)
+      const xi = Array(11).fill(null);
+      if (submission.playingXI) {
+        submission.playingXI.forEach((p, idx) => {
+          if (idx < 11) xi[idx] = p;
+        });
       }
-    } else {
-      if (!isOwnTeam) {
-        setPlayingXI(Array(11).fill(null));
-        setImpactPlayer(null);
-        setCaptainId(null);
-        setViceCaptainId(null);
-      }
-      setSubmittedLocal(false);
+      setPlayingXI(xi);
+      setImpactPlayer(submission.impactPlayer || null);
+      setCaptainId(submission.captainId || null);
+      setViceCaptainId(submission.viceCaptainId || null);
+      setSubmittedLocal(!!submission.submitted);
+      return;
     }
-  }, [submittedTeams, viewedTeamId, userTeamId, isOwnTeam]);
+
+    // Fallback: check localStorage for cached draft
+    if (typeof window !== 'undefined') {
+      const draftKey = `av_lineup_draft_${roomCode || ''}_${targetTeamId}`;
+      const saved = localStorage.getItem(draftKey);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed) {
+            setPlayingXI(parsed.playingXI || Array(11).fill(null));
+            setImpactPlayer(parsed.impactPlayer || null);
+            setCaptainId(parsed.captainId || null);
+            setViceCaptainId(parsed.viceCaptainId || null);
+            setSubmittedLocal(false);
+            return;
+          }
+        } catch (e) {
+          console.warn("Error loading draft from localStorage:", e);
+        }
+      }
+    }
+
+    // If no draft exists anywhere, reset to empty
+    if (!isOwnTeam) {
+      setPlayingXI(Array(11).fill(null));
+      setImpactPlayer(null);
+      setCaptainId(null);
+      setViceCaptainId(null);
+    }
+    setSubmittedLocal(false);
+  }, [submittedTeams, viewedTeamId, userTeamId, roomCode, isOwnTeam]);
 
   // Select initial ranked team and compare teams
   useEffect(() => {
@@ -411,11 +428,34 @@ export default function FranchiseHQ() {
 
   const handleSubmitSquad = () => {
     if (!isValidLineup) return;
-    submitTeam(xiPlayers, impactPlayer!, captainId!, viceCaptainId!, (res) => {
+    submitTeam(playingXI, impactPlayer, captainId, viceCaptainId, true, (res) => {
       if (res.success) {
         setSubmittedLocal(true);
       } else {
         alert(`Failed to submit lineup: ${res.reason}`);
+      }
+    });
+  };
+
+  const handleSaveDraft = () => {
+    // Save draft locally to localStorage
+    if (typeof window !== 'undefined') {
+      const targetTeamId = viewedTeamId || userTeamId;
+      const draftKey = `av_lineup_draft_${roomCode || ''}_${targetTeamId}`;
+      localStorage.setItem(draftKey, JSON.stringify({
+        playingXI,
+        impactPlayer,
+        captainId,
+        viceCaptainId
+      }));
+    }
+
+    // Sync draft with the server (submitted = false)
+    submitTeam(playingXI, impactPlayer, captainId, viceCaptainId, false, (res) => {
+      if (res.success) {
+        alert("Draft saved successfully!");
+      } else {
+        alert(`Failed to save draft: ${res.reason}`);
       }
     });
   };
@@ -1147,33 +1187,49 @@ export default function FranchiseHQ() {
                         <div className="bg-neon-green/10 border border-neon-green/30 p-3 rounded-xl flex items-start space-x-2 text-xs text-neon-green">
                           <CheckCircle className="h-4 w-4 shrink-0 mt-0.5" />
                           <div>
-                            <div className="font-bold uppercase tracking-wide">Squad Submitted</div>
-                            <div className="text-av-muted text-[10px] mt-0.5">This squad is official. Waiting for other managers to submit or final rankings generation.</div>
+                            <div className="font-bold uppercase tracking-wide">🔒 Team Submitted</div>
+                            <div className="text-neon-green text-[11px] font-bold mt-0.5">Lineup Locked</div>
+                            <div className="text-av-muted text-[10px] mt-0.5">This squad is official. No more editing allowed.</div>
                           </div>
                         </div>
 
                         {!lockedRankings && !rankingsPublished && isOwnTeam && (
                           <button
-                            onClick={() => setSubmittedLocal(false)}
+                            onClick={() => {
+                              if (confirm("Are you sure you want to unlock and edit your lineup?")) {
+                                setSubmittedLocal(false);
+                                // Set submission status on server back to draft
+                                submitTeam(playingXI, impactPlayer, captainId, viceCaptainId, false);
+                              }
+                            }}
                             className="w-full bg-glass hover:bg-glass-hover text-white text-xs py-2 rounded-lg font-bold border border-border-custom cursor-pointer"
                           >
-                            Modify Lineup
+                            Unlock & Modify Lineup
                           </button>
                         )}
                       </div>
                     ) : (
                       isOwnTeam ? (
-                        <button
-                          onClick={handleSubmitSquad}
-                          disabled={!isValidLineup}
-                          className={`w-full py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-300 ${
-                            isValidLineup 
-                              ? 'bg-neon-green text-midnight neon-glow-green hover:scale-[1.02] cursor-pointer' 
-                              : 'bg-glass border border-border-custom text-av-muted cursor-not-allowed'
-                          }`}
-                        >
-                          Submit Squad Submission
-                        </button>
+                        <div className="flex flex-col gap-2">
+                          <button
+                            onClick={handleSaveDraft}
+                            className="w-full bg-glass border border-neon-gold/50 text-neon-gold hover:bg-neon-gold/10 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-300 cursor-pointer"
+                          >
+                            💾 Save Draft
+                          </button>
+                          
+                          <button
+                            onClick={handleSubmitSquad}
+                            disabled={!isValidLineup}
+                            className={`w-full py-2.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all duration-300 ${
+                              isValidLineup 
+                                ? 'bg-neon-green text-midnight neon-glow-green hover:scale-[1.02] cursor-pointer font-black' 
+                                : 'bg-glass border border-border-custom text-av-muted cursor-not-allowed opacity-60'
+                            }`}
+                          >
+                            🚀 Submit Team
+                          </button>
+                        </div>
                       ) : (
                         <div className="bg-glass border border-border-custom p-3 rounded-xl text-center text-xs text-av-muted font-bold">
                           Not Submitted by Franchise Owner

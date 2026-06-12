@@ -1214,7 +1214,7 @@ app.prepare().then(() => {
     });
 
     // 6.5. Submit Playing XI & Impact Player
-    socket.on('submit-team', ({ roomCode, playingXI, impactPlayer, captainId, viceCaptainId }, callback) => {
+    socket.on('submit-team', ({ roomCode, playingXI, impactPlayer, captainId, viceCaptainId, submitted }, callback) => {
       const room = activeRooms[roomCode];
       if (!room) return callback({ success: false, reason: 'Room not found' });
 
@@ -1223,39 +1223,43 @@ app.prepare().then(() => {
 
       const teamId = p.teamId;
 
-      // Validation Checks
-      if (!playingXI || playingXI.length !== 11) {
-        return callback({ success: false, reason: 'Playing XI must contain exactly 11 players' });
-      }
-      if (!impactPlayer) {
-        return callback({ success: false, reason: 'Exactly 1 Impact Player is required' });
-      }
-      const osCount = playingXI.filter(x => x.overseas).length;
-      if (osCount > 4) {
-        return callback({ success: false, reason: 'Maximum of 4 Overseas players allowed in the Playing XI' });
-      }
-      if (!captainId || !viceCaptainId) {
-        return callback({ success: false, reason: 'Captain and Vice-Captain must be selected' });
+      // Validation Checks (only enforce strict constraints if submitted is true)
+      if (submitted) {
+        if (!playingXI || playingXI.length !== 11 || playingXI.includes(null)) {
+          return callback({ success: false, reason: 'Playing XI must contain exactly 11 players' });
+        }
+        if (!impactPlayer) {
+          return callback({ success: false, reason: 'Exactly 1 Impact Player is required' });
+        }
+        const osCount = playingXI.filter(x => x && x.overseas).length;
+        if (osCount > 4) {
+          return callback({ success: false, reason: 'Maximum of 4 Overseas players allowed in the Playing XI' });
+        }
+        if (!captainId || !viceCaptainId) {
+          return callback({ success: false, reason: 'Captain and Vice-Captain must be selected' });
+        }
       }
 
       if (!room.submittedTeams) room.submittedTeams = {};
 
       room.submittedTeams[teamId] = {
-        playingXI,
-        impactPlayer,
-        captainId,
-        viceCaptainId,
-        submitted: true
+        playingXI: playingXI || Array(11).fill(null),
+        impactPlayer: impactPlayer || null,
+        captainId: captainId || null,
+        viceCaptainId: viceCaptainId || null,
+        submitted: !!submitted
       };
 
       callback({ success: true });
       io.to(roomCode).emit('room-state', getSerializableRoomState(room));
 
       // Auto rankings check: if all teams submitted, generate rankings
-      const allSubmitted = Object.keys(room.teams).every(tid => room.submittedTeams[tid] && room.submittedTeams[tid].submitted);
-      if (allSubmitted) {
-        room.aiRankings = calculateAIRankings(room);
-        io.to(roomCode).emit('room-state', getSerializableRoomState(room));
+      if (submitted) {
+        const allSubmitted = Object.keys(room.teams).every(tid => room.submittedTeams[tid] && room.submittedTeams[tid].submitted);
+        if (allSubmitted) {
+          room.aiRankings = calculateAIRankings(room);
+          io.to(roomCode).emit('room-state', getSerializableRoomState(room));
+        }
       }
     });
 
