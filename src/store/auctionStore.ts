@@ -13,6 +13,7 @@ interface ChatMessage {
 interface AuctionStore {
   // Multiplayer room state
   roomCode: string | null;
+  roomType: 'public' | 'private' | null;
   userTeamId: TeamId | null;
   userName: string;
   isAdmin: boolean;
@@ -98,6 +99,7 @@ interface AuctionStore {
 
 export const useAuctionStore = create<AuctionStore>((set, get) => ({
   roomCode: null,
+  roomType: null,
   userTeamId: null,
   userName: '',
   isAdmin: false,
@@ -166,6 +168,7 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
       
       set({
         roomCode: state.code,
+        roomType: state.type,
         locked: state.locked,
         paused: state.paused,
         phase: state.phase,
@@ -340,6 +343,7 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
         socket.emit('get-room-info', { roomCode }, (res: { success: boolean; reason?: string; room?: any }) => {
           if (res.success && res.room) {
             set({
+              roomType: res.room.type,
               locked: res.room.locked,
               paused: res.room.paused,
               phase: res.room.phase,

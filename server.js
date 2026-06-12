@@ -1468,12 +1468,161 @@ app.prepare().then(() => {
       dbAddAuctionLog(roomCode, `admin-${action}`, `Admin triggered action: ${action}`);
     });
 
+    // ─── WebRTC Voice Chat signaling and controls ────────────────────────────
+
+    // Join voice channel
+    socket.on('join-voice', ({ roomCode }, callback) => {
+      const room = activeRooms[roomCode];
+      if (!room) return callback && callback({ success: false, reason: 'Room not found' });
+      
+      // Initialize voice participants list if not exists
+      if (!room.voiceParticipants) {
+        room.voiceParticipants = {};
+      }
+
+      // Check if voice chat is enabled for this room
+      const isPrivate = room.type === 'private';
+      const isVoiceEnabled = room.voiceChatEnabled !== undefined ? room.voiceChatEnabled : isPrivate;
+      if (!isVoiceEnabled) {
+        return callback && callback({ success: false, reason: 'Voice chat is disabled in this room' });
+      }
+
+      // Find participant details
+      const participant = room.participants.find(p => p.socketId === socket.id);
+      if (!participant) {
+        return callback && callback({ success: false, reason: 'Participant not registered in this room' });
+      }
+
+      const voiceUser = {
+        socketId: socket.id,
+        name: participant.name,
+        teamId: participant.teamId,
+        isAdmin: participant.isAdmin,
+        muted: false,
+        speaking: false
+      };
+
+      room.voiceParticipants[socket.id] = voiceUser;
+
+      // Broadcast to other participants in room that this user joined voice
+      socket.to(roomCode).emit('user-joined-voice', {
+        socketId: socket.id,
+        participant: voiceUser
+      });
+
+      // Return list of other voice participants currently in the room
+      const others = Object.values(room.voiceParticipants).filter(p => p.socketId !== socket.id);
+      
+      callback && callback({ 
+        success: true, 
+        participants: Object.values(room.voiceParticipants),
+        others: others.map(o => o.socketId)
+      });
+      
+      console.log(`[Voice] ${participant.name} joined voice channel in room ${roomCode}`);
+    });
+
+    // Leave voice channel
+    socket.on('leave-voice', ({ roomCode }) => {
+      const room = activeRooms[roomCode];
+      if (!room || !room.voiceParticipants) return;
+
+      if (room.voiceParticipants[socket.id]) {
+        const name = room.voiceParticipants[socket.id].name;
+        delete room.voiceParticipants[socket.id];
+        
+        // Broadcast to other participants
+        io.to(roomCode).emit('user-left-voice', { socketId: socket.id });
+        console.log(`[Voice] ${name} left voice channel in room ${roomCode}`);
+      }
+    });
+
+    // Voice signaling candidate / offer / answer exchange
+    socket.on('voice-signal', ({ targetSocketId, signal }) => {
+      io.to(targetSocketId).emit('voice-signal', {
+        senderSocketId: socket.id,
+        signal
+      });
+    });
+
+    // Voice mute status update
+    socket.on('voice-mute-status', ({ roomCode, muted }) => {
+      const room = activeRooms[roomCode];
+      if (!room || !room.voiceParticipants) return;
+
+      if (room.voiceParticipants[socket.id]) {
+        room.voiceParticipants[socket.id].muted = muted;
+        io.to(roomCode).emit('user-voice-mute', {
+          socketId: socket.id,
+          muted
+        });
+      }
+    });
+
+    // Voice speaking status update
+    socket.on('voice-speaking-status', ({ roomCode, speaking }) => {
+      const room = activeRooms[roomCode];
+      if (!room || !room.voiceParticipants) return;
+
+      if (room.voiceParticipants[socket.id]) {
+        room.voiceParticipants[socket.id].speaking = speaking;
+        io.to(roomCode).emit('user-voice-speaking', {
+          socketId: socket.id,
+          speaking
+        });
+      }
+    });
+
+    // Admin voice control actions
+    socket.on('admin-voice-control', ({ roomCode, action, targetSocketId }) => {
+      const room = activeRooms[roomCode];
+      if (!room) return;
+
+      // Verify if sender is admin
+      const sender = room.participants.find(p => p.socketId === socket.id);
+      if (!sender || !sender.isAdmin) {
+        console.warn(`[Voice Admin] Unauthorized control attempt by ${socket.id}`);
+        return;
+      }
+
+      if (action === 'mute-all') {
+        io.to(roomCode).emit('voice-control-action', { action: 'mute-all' });
+        console.log(`[Voice Admin] ${sender.name} muted all participants in room ${roomCode}`);
+      } else if (action === 'enable-voice') {
+        room.voiceChatEnabled = true;
+        io.to(roomCode).emit('voice-control-action', { action: 'enable-voice' });
+        console.log(`[Voice Admin] ${sender.name} enabled voice chat in room ${roomCode}`);
+      } else if (action === 'disable-voice') {
+        room.voiceChatEnabled = false;
+        room.voiceParticipants = {};
+        io.to(roomCode).emit('voice-control-action', { action: 'disable-voice' });
+        console.log(`[Voice Admin] ${sender.name} disabled voice chat in room ${roomCode}`);
+      } else if (action === 'end-voice') {
+        room.voiceParticipants = {};
+        io.to(roomCode).emit('voice-control-action', { action: 'end-voice' });
+        console.log(`[Voice Admin] ${sender.name} ended voice session in room ${roomCode}`);
+      } else if (action === 'remove-user' && targetSocketId) {
+        if (room.voiceParticipants && room.voiceParticipants[targetSocketId]) {
+          delete room.voiceParticipants[targetSocketId];
+        }
+        io.to(targetSocketId).emit('voice-control-action', { action: 'kick' });
+        io.to(roomCode).emit('user-left-voice', { socketId: targetSocketId });
+        console.log(`[Voice Admin] ${sender.name} removed user ${targetSocketId} from voice channel in room ${roomCode}`);
+      }
+    });
+
     // 8. Disconnect buffer (Wait 5s for normal users, 60s for Admin)
     socket.on('disconnect', () => {
       console.log('Socket disconnected:', socket.id);
 
       Object.keys(activeRooms).forEach((roomCode) => {
         const room = activeRooms[roomCode];
+        
+        // Voice participant cleanup on disconnect
+        if (room.voiceParticipants && room.voiceParticipants[socket.id]) {
+          delete room.voiceParticipants[socket.id];
+          io.to(roomCode).emit('user-left-voice', { socketId: socket.id });
+        }
         const pIndex = room.participants.findIndex(p => p.socketId === socket.id);
 
         if (pIndex !== -1) {

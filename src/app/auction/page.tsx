@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuctionStore } from '@/store/auctionStore';
+import { socket } from '@/lib/socket';
 import { TEAMS_DB } from '@/lib/teams-db';
 import { formatCr, formatCrShort, getNextBid } from '@/engine/BidIncrement';
 import { PlayerRole, Player, TeamId } from '@/types';
@@ -9,7 +10,8 @@ import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Zap, Circle, User, ShieldAlert, Trophy, ArrowRight, Play, Volume2, Send, Pause, SkipForward, Ban, Power,
-  Crown, Star, X, CheckCircle, Landmark, Users, AlertCircle, ChevronRight, Check, Trash2
+  Crown, Star, X, CheckCircle, Landmark, Users, AlertCircle, ChevronRight, Check, Trash2,
+  Mic, MicOff, Headphones, VolumeX, Settings, PhoneOff
 } from 'lucide-react';
 import Navbar from '@/components/shared/Navbar';
 import AuctionStatsModal from '@/components/shared/AuctionStatsModal';
@@ -18,6 +20,7 @@ export default function AuctionArena() {
   const router = useRouter();
   const {
     roomCode,
+    roomType,
     userTeamId,
     userName,
     isAdmin,
@@ -50,6 +53,42 @@ export default function AuctionArena() {
   const [selectedUnsoldIds, setSelectedUnsoldIds] = useState<number[]>([]);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  // Sound settings state
+  const [settings, setSettings] = useState({
+    auctionSound: true,
+    voiceChat: false,
+    countdownSound: true,
+    hammerSound: true,
+    notificationSound: true,
+  });
+
+  // Settings panel open/close
+  const [isVoiceSettingsOpen, setIsVoiceSettingsOpen] = useState(false);
+
+  // WebRTC voice chat states
+  const [isVoiceJoined, setIsVoiceJoined] = useState(false);
+  const [voiceParticipants, setVoiceParticipants] = useState<Record<string, {
+    socketId: string;
+    name: string;
+    teamId: string;
+    isAdmin: boolean;
+    muted: boolean;
+    speaking: boolean;
+  }>>({});
+  const [micMuted, setMicMuted] = useState(false);
+  const [speakerMuted, setSpeakerMuted] = useState(false);
+  const [speakerVolume, setSpeakerVolume] = useState(0.8);
+
+  // Refs for WebRTC connections and audio elements
+  const pcs = useRef<Record<string, RTCPeerConnection>>({});
+  const localStream = useRef<MediaStream | null>(null);
+  const remoteAudios = useRef<Record<string, HTMLAudioElement>>({});
+
+  // Speaking state detection refs
+  const localAudioContext = useRef<AudioContext | null>(null);
+  const localAnalyser = useRef<AnalyserNode | null>(null);
+  const localSpeakingInterval = useRef<any>(null);
+
   // Unsold players for accelerated round
   const unsoldPlayers = playerQueue.filter(
     (p) => p.soldPrice === null && p.currentTeam === null && playerQueue.indexOf(p) < currentIndex
@@ -68,6 +107,349 @@ export default function AuctionArena() {
   const [viewedTeamId, setViewedTeamId] = useState<string>('');
 
   const isOwnTeam = viewedTeamId === userTeamId || !viewedTeamId;
+
+  // WebRTC configuration
+  const rtcConfig = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' }
+    ]
+  };
+
+  const updateRemoteAudiosVolume = (muted: boolean, vol: number) => {
+    Object.values(remoteAudios.current).forEach(audio => {
+      audio.volume = muted ? 0 : vol;
+    });
+  };
+
+  const toggleMic = () => {
+    const nextVal = !micMuted;
+    setMicMuted(nextVal);
+    if (localStream.current) {
+      localStream.current.getAudioTracks().forEach(track => {
+        track.enabled = !nextVal;
+      });
+    }
+    socket.emit('voice-mute-status', { roomCode, muted: nextVal });
+  };
+
+  const toggleSpeaker = () => {
+    const nextVal = !speakerMuted;
+    setSpeakerMuted(nextVal);
+    updateRemoteAudiosVolume(nextVal, speakerVolume);
+  };
+
+  const handleSpeakerVolumeChange = (vol: number) => {
+    setSpeakerVolume(vol);
+    updateRemoteAudiosVolume(speakerMuted, vol);
+  };
+
+  const startSpeakingDetection = (stream: MediaStream) => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      source.connect(analyser);
+
+      localAudioContext.current = ctx;
+      localAnalyser.current = analyser;
+
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      let lastSpeakingState = false;
+
+      localSpeakingInterval.current = setInterval(() => {
+        if (micMuted) {
+          if (lastSpeakingState) {
+            lastSpeakingState = false;
+            socket.emit('voice-speaking-status', { roomCode, speaking: false });
+          }
+          return;
+        }
+
+        analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          sum += dataArray[i];
+        }
+        const average = sum / bufferLength;
+        const speaking = average > 12; // Speak threshold
+
+        if (speaking !== lastSpeakingState) {
+          lastSpeakingState = speaking;
+          socket.emit('voice-speaking-status', { roomCode, speaking });
+        }
+      }, 150);
+    } catch (err) {
+      console.warn("Could not start volume detection:", err);
+    }
+  };
+
+  const stopSpeakingDetection = () => {
+    if (localSpeakingInterval.current) {
+      clearInterval(localSpeakingInterval.current);
+      localSpeakingInterval.current = null;
+    }
+    if (localAudioContext.current) {
+      localAudioContext.current.close().catch(() => {});
+      localAudioContext.current = null;
+    }
+    localAnalyser.current = null;
+  };
+
+  const cleanupPeer = (socketId: string) => {
+    if (pcs.current[socketId]) {
+      pcs.current[socketId].close();
+      delete pcs.current[socketId];
+    }
+    if (remoteAudios.current[socketId]) {
+      remoteAudios.current[socketId].srcObject = null;
+      delete remoteAudios.current[socketId];
+    }
+  };
+
+  const createPeerConnection = (targetSocketId: string) => {
+    const pc = new RTCPeerConnection(rtcConfig);
+    pcs.current[targetSocketId] = pc;
+
+    // Add local tracks
+    if (localStream.current) {
+      localStream.current.getTracks().forEach(track => {
+        pc.addTrack(track, localStream.current!);
+      });
+    }
+
+    // Ice candidate callback
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        socket.emit('voice-signal', {
+          targetSocketId,
+          signal: { candidate: event.candidate }
+        });
+      }
+    };
+
+    // Track event
+    pc.ontrack = (event) => {
+      console.log(`[WebRTC] Received track from ${targetSocketId}`);
+      const stream = event.streams[0];
+      
+      let audio = remoteAudios.current[targetSocketId];
+      if (!audio) {
+        audio = new Audio();
+        audio.autoplay = true;
+        remoteAudios.current[targetSocketId] = audio;
+      }
+      audio.srcObject = stream;
+      audio.volume = speakerMuted ? 0 : speakerVolume;
+      audio.play().catch(err => console.warn("Audio play failed:", err));
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      if (
+        pc.iceConnectionState === 'disconnected' ||
+        pc.iceConnectionState === 'failed' ||
+        pc.iceConnectionState === 'closed'
+      ) {
+        cleanupPeer(targetSocketId);
+      }
+    };
+
+    return pc;
+  };
+
+  const joinVoiceChannel = async () => {
+    if (isVoiceJoined || !roomCode) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+      
+      localStream.current = stream;
+      stream.getAudioTracks().forEach(track => {
+        track.enabled = !micMuted;
+      });
+
+      socket.emit('join-voice', { roomCode }, (res: any) => {
+        if (res && res.success) {
+          setIsVoiceJoined(true);
+          
+          const participantsMap: Record<string, any> = {};
+          res.participants.forEach((p: any) => {
+            participantsMap[p.socketId] = p;
+          });
+          setVoiceParticipants(participantsMap);
+
+          res.others.forEach((otherSocketId: string) => {
+            createPeerConnection(otherSocketId);
+          });
+
+          startSpeakingDetection(stream);
+          socket.emit('voice-mute-status', { roomCode, muted: micMuted });
+        } else {
+          console.warn("Failed to join voice channel:", res?.reason);
+        }
+      });
+    } catch (err) {
+      console.error("Microphone access denied or error:", err);
+    }
+  };
+
+  const leaveVoiceChannel = () => {
+    if (localStream.current) {
+      localStream.current.getTracks().forEach(track => track.stop());
+      localStream.current = null;
+    }
+    stopSpeakingDetection();
+    
+    Object.keys(pcs.current).forEach(socketId => {
+      cleanupPeer(socketId);
+    });
+    pcs.current = {};
+
+    socket.emit('leave-voice', { roomCode });
+    setIsVoiceJoined(false);
+    setVoiceParticipants({});
+  };
+
+  // Listen to WebRTC voice events
+  useEffect(() => {
+    if (!roomCode) return;
+
+    const handleUserJoinedVoice = ({ socketId, participant }: any) => {
+      setVoiceParticipants(prev => ({
+        ...prev,
+        [socketId]: participant
+      }));
+    };
+
+    const handleUserLeftVoice = ({ socketId }: any) => {
+      cleanupPeer(socketId);
+      setVoiceParticipants(prev => {
+        const next = { ...prev };
+        delete next[socketId];
+        return next;
+      });
+    };
+
+    const handleVoiceSignal = async ({ senderSocketId, signal }: any) => {
+      let pc = pcs.current[senderSocketId];
+
+      if (signal.sdp) {
+        if (signal.sdp.type === 'offer') {
+          if (!pc) {
+            pc = createPeerConnection(senderSocketId);
+          }
+          await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          socket.emit('voice-signal', { targetSocketId: senderSocketId, signal: { sdp: answer } });
+        } else if (signal.sdp.type === 'answer') {
+          if (pc) {
+            await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+          }
+        }
+      } else if (signal.candidate) {
+        if (pc) {
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+          } catch (e) {
+            console.error("Error adding ICE candidate:", e);
+          }
+        }
+      }
+    };
+
+    const handleUserVoiceMute = ({ socketId, muted }: any) => {
+      setVoiceParticipants(prev => {
+        if (!prev[socketId]) return prev;
+        return {
+          ...prev,
+          [socketId]: { ...prev[socketId], muted }
+        };
+      });
+    };
+
+    const handleUserVoiceSpeaking = ({ socketId, speaking }: any) => {
+      setVoiceParticipants(prev => {
+        if (!prev[socketId]) return prev;
+        return {
+          ...prev,
+          [socketId]: { ...prev[socketId], speaking }
+        };
+      });
+    };
+
+    const handleVoiceControlAction = ({ action }: any) => {
+      if (action === 'mute-all') {
+        setMicMuted(true);
+        if (localStream.current) {
+          localStream.current.getAudioTracks().forEach(track => {
+            track.enabled = false;
+          });
+        }
+        socket.emit('voice-mute-status', { roomCode, muted: true });
+      } else if (action === 'disable-voice') {
+        leaveVoiceChannel();
+        setSettings(prev => ({ ...prev, voiceChat: false }));
+      } else if (action === 'enable-voice') {
+        setSettings(prev => ({ ...prev, voiceChat: true }));
+      } else if (action === 'end-voice') {
+        leaveVoiceChannel();
+        setSettings(prev => ({ ...prev, voiceChat: false }));
+      } else if (action === 'kick') {
+        leaveVoiceChannel();
+        alert("You have been removed from the voice channel by the admin.");
+      }
+    };
+
+    socket.on('user-joined-voice', handleUserJoinedVoice);
+    socket.on('user-left-voice', handleUserLeftVoice);
+    socket.on('voice-signal', handleVoiceSignal);
+    socket.on('user-voice-mute', handleUserVoiceMute);
+    socket.on('user-voice-speaking', handleUserVoiceSpeaking);
+    socket.on('voice-control-action', handleVoiceControlAction);
+
+    return () => {
+      socket.off('user-joined-voice', handleUserJoinedVoice);
+      socket.off('user-left-voice', handleUserLeftVoice);
+      socket.off('voice-signal', handleVoiceSignal);
+      socket.off('user-voice-mute', handleUserVoiceMute);
+      socket.off('user-voice-speaking', handleUserVoiceSpeaking);
+      socket.off('voice-control-action', handleVoiceControlAction);
+    };
+  }, [roomCode, micMuted, speakerMuted, speakerVolume]);
+
+  // Sync voiceChat setting from roomType (ON for private, OFF for public by default)
+  useEffect(() => {
+    if (roomType) {
+      setSettings(prev => ({
+        ...prev,
+        voiceChat: roomType === 'private'
+      }));
+    }
+  }, [roomType]);
+
+  // Auto join / leave voice channel based on settings and room type
+  useEffect(() => {
+    if (roomCode && roomType === 'private' && settings.voiceChat) {
+      joinVoiceChannel();
+    } else {
+      leaveVoiceChannel();
+    }
+    return () => {
+      leaveVoiceChannel();
+    };
+  }, [roomCode, roomType, settings.voiceChat]);
 
   // Sync viewed team on load
   useEffect(() => {
@@ -374,92 +756,67 @@ export default function AuctionArena() {
   });
 
   // ── V3 Upgraded Web Audio Sounds ──────────────────────────────────────────
-  const playSound = (type: 'bid' | 'sold' | 'going-once' | 'going-twice' | 'warning-3' | 'warning-2' | 'warning-1') => {
+  const playSound = (type: 'bid' | 'countdown' | 'sold' | 'unsold') => {
     if (typeof window === 'undefined') return;
+    if (type === 'bid' && !settings.auctionSound) return;
+    if (type === 'countdown' && !settings.countdownSound) return;
+    if (type === 'sold' && !settings.hammerSound) return;
+    if (type === 'unsold' && !settings.hammerSound) return;
+
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
 
       if (type === 'bid') {
-        // Short crisp auction bell/chime
+        // Soft click/tick sound for bid placed
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(1200, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(1500, ctx.currentTime + 0.05);
-        gain.gain.setValueAtTime(0.2, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+        osc.frequency.setValueAtTime(800, ctx.currentTime);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
         osc.start();
-        osc.stop(ctx.currentTime + 0.1);
-      } else if (type === 'going-once' || type === 'going-twice') {
-        // Warning drum
+        osc.stop(ctx.currentTime + 0.08);
+      } else if (type === 'countdown') {
+        // Soft beep for final 5 seconds countdown (moderate volume, not loud or annoying)
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, ctx.currentTime);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.12);
+      } else if (type === 'sold') {
+        // Gavel hammer sound (triangle thud)
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.type = 'triangle';
-        osc.frequency.setValueAtTime(220, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(110, ctx.currentTime + 0.3);
-        gain.gain.setValueAtTime(0.25, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+        osc.frequency.setValueAtTime(150, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(30, ctx.currentTime + 0.35);
+        gain.gain.setValueAtTime(0.4, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
         osc.start();
-        osc.stop(ctx.currentTime + 0.3);
-      } else if (type === 'warning-3' || type === 'warning-2' || type === 'warning-1') {
-        // Final 3 seconds warning sequence - becoming more urgent
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.type = 'sine';
-        
-        let freq = 500;
-        let vol = 0.15;
-        let duration = 0.15;
-        
-        if (type === 'warning-3') {
-          freq = 500;
-        } else if (type === 'warning-2') {
-          freq = 650;
-          vol = 0.22;
-        } else if (type === 'warning-1') {
-          freq = 800;
-          vol = 0.30;
-          duration = 0.25;
-        }
-        
-        osc.frequency.setValueAtTime(freq, ctx.currentTime);
-        gain.gain.setValueAtTime(vol, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-        osc.start();
-        osc.stop(ctx.currentTime + duration);
-      } else if (type === 'sold') {
-        // Celebratory triple chime + gavel
-        [0, 0.15, 0.3].forEach((delay, i) => {
+        osc.stop(ctx.currentTime + 0.35);
+      } else if (type === 'unsold') {
+        // Low soft double buzzer
+        [0, 0.12].forEach((delay) => {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.connect(gain);
           gain.connect(ctx.destination);
-          osc.type = 'sine';
-          const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
-          osc.frequency.setValueAtTime(notes[i], ctx.currentTime + delay);
-          gain.gain.setValueAtTime(0.18, ctx.currentTime + delay);
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.4);
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(180, ctx.currentTime + delay);
+          gain.gain.setValueAtTime(0.08, ctx.currentTime + delay);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.2);
           osc.start(ctx.currentTime + delay);
-          osc.stop(ctx.currentTime + delay + 0.4);
+          osc.stop(ctx.currentTime + delay + 0.2);
         });
-        // Gavel thud
-        const noise = ctx.createOscillator();
-        const nGain = ctx.createGain();
-        noise.connect(nGain);
-        nGain.connect(ctx.destination);
-        noise.type = 'triangle';
-        noise.frequency.setValueAtTime(80, ctx.currentTime + 0.45);
-        noise.frequency.exponentialRampToValueAtTime(20, ctx.currentTime + 0.75);
-        nGain.gain.setValueAtTime(0.5, ctx.currentTime + 0.45);
-        nGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.75);
-        noise.start(ctx.currentTime + 0.45);
-        noise.stop(ctx.currentTime + 0.75);
       }
     } catch (e) {
       console.warn('AudioContext blocked', e);
@@ -467,12 +824,7 @@ export default function AuctionArena() {
   };
 
   const speak = (text: string) => {
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.05;
-      window.speechSynthesis.speak(utterance);
-    }
+    // Automatic commentary removed
   };
 
   // Audio effects triggers
@@ -481,46 +833,36 @@ export default function AuctionArena() {
   const lastPhase = useRef<string | null>(null);
   const lastWarningTick = useRef<number | null>(null);
 
-  // Warning ticks for final 3 seconds
+  // Soft countdown warning ticks for final 5 seconds
   useEffect(() => {
-    if (phase === 'BIDDING' && countdown <= 3 && countdown > 0) {
+    if (phase === 'BIDDING' && countdown <= 5 && countdown > 0 && !paused) {
       if (lastWarningTick.current !== countdown) {
-        playSound(`warning-${countdown}` as any);
+        playSound('countdown');
         lastWarningTick.current = countdown;
       }
     } else {
       lastWarningTick.current = null;
     }
-  }, [countdown, phase]);
+  }, [countdown, phase, paused]);
 
+  // Bid placed sound trigger
   useEffect(() => {
     if (phase === 'BIDDING' && currentBidderId && (currentBid > lastBidAmount.current || currentBidderId !== lastBidderId.current)) {
       playSound('bid');
-      const bidderTeam = TEAMS_DB.find(t => t.id === currentBidderId);
-      if (bidderTeam) {
-        speak(`${bidderTeam.abbr} bids ${formatCr(currentBid)}`);
-      }
       lastBidAmount.current = currentBid;
       lastBidderId.current = currentBidderId;
     }
   }, [currentBid, currentBidderId, phase]);
 
+  // Sold and Unsold sound triggers
   useEffect(() => {
-    // RESOLVING phase sounds
-    if (phase === 'RESOLVING') {
-      if (countdownText === 'GOING ONCE') playSound('going-once');
-      if (countdownText === 'GOING TWICE') playSound('going-twice');
-    }
-
     if (phase === 'SOLD' && lastPhase.current !== 'SOLD' && currentPlayer && currentBidderId) {
       playSound('sold');
-      const bidderTeam = TEAMS_DB.find(t => t.id === currentBidderId);
-      speak(`Sold! ${currentPlayer.name} sold to ${bidderTeam ? bidderTeam.name : currentBidderId} for ${formatCr(currentBid)}!`);
     } else if (phase === 'UNSOLD' && lastPhase.current !== 'UNSOLD' && currentPlayer) {
-      speak(`${currentPlayer.name} goes unsold.`);
+      playSound('unsold');
     }
     lastPhase.current = phase;
-  }, [phase, countdownText, currentPlayer, currentBidderId, currentBid]);
+  }, [phase, currentPlayer, currentBidderId]);
 
   const lastAnnouncementText = useRef<string | null>(null);
   useEffect(() => {
@@ -1412,6 +1754,234 @@ export default function AuctionArena() {
         )}
       </div>
 
+      {/* Voice Chat Widget */}
+      <div className="glass-panel rounded-2xl p-4 flex flex-col gap-3">
+        <div className="flex justify-between items-center border-b border-border-custom pb-2">
+          <div className="flex items-center space-x-2">
+            <span className={`h-2 w-2 rounded-full ${isVoiceJoined ? 'bg-neon-green animate-pulse' : 'bg-av-muted'}`} />
+            <h3 className="text-xs font-bold uppercase tracking-widest text-white">
+              Voice Chat
+            </h3>
+            {isVoiceJoined && (
+              <span className="text-[9px] bg-void/50 border border-white/5 px-2 py-0.5 rounded-full text-av-muted font-bold flex items-center space-x-1 shrink-0">
+                <Users className="h-3 w-3 inline mr-0.5" />
+                <span>{Object.keys(voiceParticipants).length}</span>
+              </span>
+            )}
+          </div>
+
+          <button
+            onClick={() => setIsVoiceSettingsOpen(!isVoiceSettingsOpen)}
+            className="p-1 text-av-muted hover:text-white transition-colors rounded hover:bg-glass"
+          >
+            <Settings className="h-4 w-4" />
+          </button>
+        </div>
+
+        {isVoiceSettingsOpen ? (
+          <div className="bg-void/40 border border-white/5 rounded-xl p-3 space-y-3.5 text-xs">
+            <div className="flex justify-between items-center border-b border-white/5 pb-2">
+              <span className="font-extrabold text-neon-gold uppercase text-[10px]">Audio Settings</span>
+              <button onClick={() => setIsVoiceSettingsOpen(false)} className="text-[10px] text-av-muted hover:text-white font-bold">Done</button>
+            </div>
+
+            <div className="space-y-2.5">
+              <div className="flex justify-between items-center">
+                <span className="text-av-muted">Auction Sound</span>
+                <button
+                  onClick={() => setSettings(prev => ({ ...prev, auctionSound: !prev.auctionSound }))}
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${settings.auctionSound ? 'bg-neon-green/15 text-neon-green border border-neon-green/30' : 'bg-void text-av-muted border border-white/5'}`}
+                >
+                  {settings.auctionSound ? 'ON' : 'OFF'}
+                </button>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-av-muted">Voice Chat</span>
+                <button
+                  onClick={() => setSettings(prev => ({ ...prev, voiceChat: !prev.voiceChat }))}
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${settings.voiceChat ? 'bg-neon-green/15 text-neon-green border border-neon-green/30' : 'bg-void text-av-muted border border-white/5'}`}
+                >
+                  {settings.voiceChat ? 'ON' : 'OFF'}
+                </button>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-av-muted">Countdown Sound</span>
+                <button
+                  onClick={() => setSettings(prev => ({ ...prev, countdownSound: !prev.countdownSound }))}
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${settings.countdownSound ? 'bg-neon-green/15 text-neon-green border border-neon-green/30' : 'bg-void text-av-muted border border-white/5'}`}
+                >
+                  {settings.countdownSound ? 'ON' : 'OFF'}
+                </button>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-av-muted">Hammer Sound</span>
+                <button
+                  onClick={() => setSettings(prev => ({ ...prev, hammerSound: !prev.hammerSound }))}
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${settings.hammerSound ? 'bg-neon-green/15 text-neon-green border border-neon-green/30' : 'bg-void text-av-muted border border-white/5'}`}
+                >
+                  {settings.hammerSound ? 'ON' : 'OFF'}
+                </button>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-av-muted">Notification Sound</span>
+                <button
+                  onClick={() => setSettings(prev => ({ ...prev, notificationSound: !prev.notificationSound }))}
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${settings.notificationSound ? 'bg-neon-green/15 text-neon-green border border-neon-green/30' : 'bg-void text-av-muted border border-white/5'}`}
+                >
+                  {settings.notificationSound ? 'ON' : 'OFF'}
+                </button>
+              </div>
+
+              <div className="space-y-1 pt-1.5 border-t border-white/5">
+                <div className="flex justify-between text-[10px] text-av-muted">
+                  <span>Speaker Volume</span>
+                  <span>{Math.round(speakerVolume * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={speakerVolume}
+                  onChange={(e) => handleSpeakerVolumeChange(parseFloat(e.target.value))}
+                  className="w-full h-1 bg-void rounded-lg appearance-none cursor-pointer accent-neon-gold"
+                />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="space-y-2 max-h-[140px] overflow-y-auto pr-1">
+              {Object.values(voiceParticipants).length === 0 ? (
+                <div className="text-center py-4 text-[11px] text-av-muted italic">
+                  No participants connected to voice
+                </div>
+              ) : (
+                Object.values(voiceParticipants).map((p) => {
+                  const team = TEAMS_DB.find((t) => t.id === p.teamId);
+                  return (
+                    <div
+                      key={p.socketId}
+                      className={`flex items-center justify-between p-2 rounded-lg bg-void/30 border transition-all duration-200 ${
+                        p.speaking
+                          ? 'border-neon-green/40 shadow-[0_0_10px_rgba(57,255,20,0.05)] bg-neon-green/5'
+                          : 'border-white/5'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-2 min-w-0">
+                        <span className="text-sm shrink-0">{p.speaking ? '🎤' : p.muted ? '🔇' : '🎤'}</span>
+                        <div className="min-w-0">
+                          <span className={`text-xs font-bold block truncate uppercase ${
+                            p.speaking ? 'text-neon-green' : 'text-white'
+                          }`}>
+                            {p.name}
+                          </span>
+                          <span className="text-[9px] text-av-muted block leading-none mt-0.5">
+                            {team ? `${team.emoji} ${team.abbr}` : '👀 Spectator'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-1.5 shrink-0">
+                        {p.muted && (
+                          <span className="text-[8px] px-1.5 py-0.5 bg-neon-red/10 text-neon-red rounded border border-neon-red/25 font-bold">
+                            MUTED
+                          </span>
+                        )}
+                        {p.speaking && (
+                          <span className="text-[8px] px-1.5 py-0.5 bg-neon-green/10 text-neon-green rounded border border-neon-green/25 font-bold animate-pulse">
+                            SPEAKING
+                          </span>
+                        )}
+                        
+                        {isAdmin && p.socketId !== socket.id && (
+                          <button
+                            onClick={() => socket.emit('admin-voice-control', { roomCode, action: 'remove-user', targetSocketId: p.socketId })}
+                            title="Kick from Voice Channel"
+                            className="p-1 rounded bg-neon-red/10 border border-neon-red/25 hover:bg-neon-red text-neon-red hover:text-white transition-colors duration-150"
+                          >
+                            <PhoneOff className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {isVoiceJoined ? (
+              <div className="flex items-center gap-2 pt-2 border-t border-white/5">
+                <button
+                  onClick={toggleMic}
+                  className={`flex-1 py-2 px-3 rounded-xl text-[10px] font-black tracking-wider uppercase transition-all duration-200 border flex items-center justify-center space-x-1.5 cursor-pointer ${
+                    micMuted
+                      ? 'bg-neon-red/10 border-neon-red/30 text-neon-red hover:bg-neon-red/25'
+                      : 'bg-glass border-border-custom text-white hover:bg-glass-hover'
+                  }`}
+                >
+                  {micMuted ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+                  <span>{micMuted ? 'Muted' : 'Mic On'}</span>
+                </button>
+
+                <button
+                  onClick={toggleSpeaker}
+                  className={`flex-1 py-2 px-3 rounded-xl text-[10px] font-black tracking-wider uppercase transition-all duration-200 border flex items-center justify-center space-x-1.5 cursor-pointer ${
+                    speakerMuted
+                      ? 'bg-neon-red/10 border-neon-red/30 text-neon-red hover:bg-neon-red/25'
+                      : 'bg-glass border-border-custom text-white hover:bg-glass-hover'
+                  }`}
+                >
+                  {speakerMuted ? <VolumeX className="h-3.5 w-3.5" /> : <Headphones className="h-3.5 w-3.5" />}
+                  <span>{speakerMuted ? 'Muted' : 'Sound On'}</span>
+                </button>
+
+                <button
+                  onClick={leaveVoiceChannel}
+                  className="p-2 rounded-xl bg-neon-red/15 hover:bg-neon-red border border-neon-red/30 text-neon-red hover:text-white transition-all duration-200 flex items-center justify-center cursor-pointer shrink-0"
+                  title="Leave Voice Channel"
+                >
+                  <PhoneOff className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={joinVoiceChannel}
+                className="w-full py-2.5 rounded-xl text-xs font-black tracking-widest uppercase transition-all duration-300 bg-gradient-to-r from-neon-cyan to-blue-500 text-midnight font-extrabold cursor-pointer border-t border-white/20 hover:shadow-[0_0_20px_rgba(0,255,255,0.3)] hover:scale-[1.02]"
+              >
+                📞 Join Voice Channel
+              </button>
+            )}
+
+            {isAdmin && (
+              <div className="bg-void/30 border border-white/5 rounded-xl p-2.5 space-y-2 mt-2">
+                <span className="text-[9px] uppercase font-black text-neon-gold block leading-none">
+                  Voice Admin Controls
+                </span>
+                <div className="grid grid-cols-2 gap-1.5 text-[9px] font-black uppercase">
+                  <button
+                    onClick={() => socket.emit('admin-voice-control', { roomCode, action: 'mute-all' })}
+                    className="bg-glass border border-border-custom hover:bg-glass-hover hover:border-neon-gold/50 p-1.5 rounded-lg text-center cursor-pointer text-white"
+                  >
+                    Mute All
+                  </button>
+                  <button
+                    onClick={() => socket.emit('admin-voice-control', { roomCode, action: 'end-voice' })}
+                    className="bg-glass border border-border-custom hover:bg-glass-hover hover:border-neon-red/50 p-1.5 rounded-lg text-center cursor-pointer text-neon-red"
+                  >
+                    End Session
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Spectator Chat Box */}
       <div className="glass-panel rounded-2xl p-4 flex-1 flex flex-col justify-between min-h-[300px] max-h-[350px]">
         <h3 className="text-xs font-bold uppercase tracking-widest text-av-muted border-b border-border-custom pb-2">
@@ -1846,6 +2416,252 @@ export default function AuctionArena() {
             isAdmin={isAdmin}
             onReintroduce={(playerId) => triggerAdminAction('reintroduce', [playerId])}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Mobile Floating Voice Controls Dock */}
+      {roomType === 'private' && (
+        <div className="lg:hidden fixed bottom-[125px] right-4 z-40 flex flex-col gap-2">
+          <div className="glass-panel p-2 rounded-full flex flex-col items-center gap-2 shadow-lg border border-white/10 backdrop-blur-md">
+            <button
+              onClick={toggleMic}
+              className={`p-2.5 rounded-full transition-all duration-200 cursor-pointer ${
+                micMuted ? 'bg-neon-red/20 text-neon-red' : 'bg-neon-cyan/20 text-neon-cyan'
+              }`}
+            >
+              {micMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            </button>
+
+            <button
+              onClick={toggleSpeaker}
+              className={`p-2.5 rounded-full transition-all duration-200 cursor-pointer ${
+                speakerMuted ? 'bg-neon-red/20 text-neon-red' : 'bg-neon-gold/20 text-neon-gold'
+              }`}
+            >
+              {speakerMuted ? <VolumeX className="h-4 w-4" /> : <Headphones className="h-4 w-4" />}
+            </button>
+
+            <button
+              onClick={() => setIsVoiceSettingsOpen(!isVoiceSettingsOpen)}
+              className="p-2.5 rounded-full bg-glass text-white transition-all duration-200 hover:bg-glass-hover cursor-pointer"
+            >
+              <Settings className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Settings Modal Overlay */}
+      <AnimatePresence>
+        {isVoiceSettingsOpen && (
+          <div className="lg:hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-midnight/90 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="glass-panel w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+            >
+              <div className="p-4 border-b border-border-custom flex justify-between items-center bg-void/50">
+                <div>
+                  <h3 className="font-extrabold text-sm text-white uppercase tracking-wide">
+                    Voice & Sound Settings
+                  </h3>
+                  <p className="text-[10px] text-av-muted mt-0.5 font-bold">Configure auction audio and voice channel</p>
+                </div>
+                <button onClick={() => setIsVoiceSettingsOpen(false)} className="p-1 text-av-muted hover:text-white transition-colors">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="p-4 overflow-y-auto space-y-4 max-h-[70vh]">
+                <div className="space-y-2.5 text-xs">
+                  <h4 className="font-bold text-neon-gold uppercase text-[10px] tracking-wider mb-2">Sound Toggles</h4>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-av-muted">Auction Sound</span>
+                    <button
+                      onClick={() => setSettings(prev => ({ ...prev, auctionSound: !prev.auctionSound }))}
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${settings.auctionSound ? 'bg-neon-green/15 text-neon-green border border-neon-green/30' : 'bg-void text-av-muted border border-white/5'}`}
+                    >
+                      {settings.auctionSound ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-av-muted">Voice Chat</span>
+                    <button
+                      onClick={() => setSettings(prev => ({ ...prev, voiceChat: !prev.voiceChat }))}
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${settings.voiceChat ? 'bg-neon-green/15 text-neon-green border border-neon-green/30' : 'bg-void text-av-muted border border-white/5'}`}
+                    >
+                      {settings.voiceChat ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-av-muted">Countdown Sound</span>
+                    <button
+                      onClick={() => setSettings(prev => ({ ...prev, countdownSound: !prev.countdownSound }))}
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${settings.countdownSound ? 'bg-neon-green/15 text-neon-green border border-neon-green/30' : 'bg-void text-av-muted border border-white/5'}`}
+                    >
+                      {settings.countdownSound ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-av-muted">Hammer Sound</span>
+                    <button
+                      onClick={() => setSettings(prev => ({ ...prev, hammerSound: !prev.hammerSound }))}
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${settings.hammerSound ? 'bg-neon-green/15 text-neon-green border border-neon-green/30' : 'bg-void text-av-muted border border-white/5'}`}
+                    >
+                      {settings.hammerSound ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-av-muted">Notification Sound</span>
+                    <button
+                      onClick={() => setSettings(prev => ({ ...prev, notificationSound: !prev.notificationSound }))}
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${settings.notificationSound ? 'bg-neon-green/15 text-neon-green border border-neon-green/30' : 'bg-void text-av-muted border border-white/5'}`}
+                    >
+                      {settings.notificationSound ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+
+                  <div className="space-y-1 pt-2 border-t border-white/5">
+                    <div className="flex justify-between text-[10px] text-av-muted">
+                      <span>Speaker Volume</span>
+                      <span>{Math.round(speakerVolume * 100)}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={speakerVolume}
+                      onChange={(e) => handleSpeakerVolumeChange(parseFloat(e.target.value))}
+                      className="w-full h-1 bg-void rounded-lg appearance-none cursor-pointer accent-neon-gold"
+                    />
+                  </div>
+                </div>
+
+                <div className="border-t border-white/5 pt-3 space-y-2">
+                  <h4 className="font-bold text-neon-gold uppercase text-[10px] tracking-wider mb-2 flex justify-between items-center">
+                    <span>Voice Participants ({Object.keys(voiceParticipants).length})</span>
+                    {isVoiceJoined && <span className="text-[8px] bg-neon-green/15 text-neon-green border border-neon-green/30 px-1.5 py-0.5 rounded font-black animate-pulse">Connected</span>}
+                  </h4>
+
+                  <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+                    {Object.values(voiceParticipants).length === 0 ? (
+                      <div className="text-center py-4 text-[10px] text-av-muted italic">
+                        No participants connected to voice
+                      </div>
+                    ) : (
+                      Object.values(voiceParticipants).map((p) => {
+                        const team = TEAMS_DB.find((t) => t.id === p.teamId);
+                        return (
+                          <div
+                            key={p.socketId}
+                            className={`flex items-center justify-between p-2 rounded-lg bg-void/30 border transition-all duration-200 ${
+                              p.speaking
+                                ? 'border-neon-green/40 shadow-[0_0_10px_rgba(57,255,20,0.05)] bg-neon-green/5'
+                                : 'border-white/5'
+                            }`}
+                          >
+                            <div className="flex items-center space-x-2 min-w-0">
+                              <span className="text-xs shrink-0">{p.speaking ? '🎤' : p.muted ? '🔇' : '🎤'}</span>
+                              <div className="min-w-0">
+                                <span className={`text-[11px] font-bold block truncate uppercase ${
+                                  p.speaking ? 'text-neon-green' : 'text-white'
+                                }`}>
+                                  {p.name}
+                                </span>
+                                <span className="text-[9px] text-av-muted block leading-none">
+                                  {team ? `${team.emoji} ${team.abbr}` : '👀 Spectator'}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center space-x-1 shrink-0">
+                              {p.muted && (
+                                <span className="text-[8px] px-1 bg-neon-red/10 text-neon-red rounded border border-neon-red/25 font-bold">
+                                  MUTED
+                                </span>
+                              )}
+                              {p.speaking && (
+                                <span className="text-[8px] px-1 bg-neon-green/10 text-neon-green rounded border border-neon-green/25 font-bold animate-pulse">
+                                  TALKING
+                                </span>
+                              )}
+                              {isAdmin && p.socketId !== socket.id && (
+                                <button
+                                  onClick={() => socket.emit('admin-voice-control', { roomCode, action: 'remove-user', targetSocketId: p.socketId })}
+                                  className="p-1 rounded bg-neon-red/10 border border-neon-red/25 hover:bg-neon-red text-neon-red hover:text-white transition-colors"
+                                >
+                                  <PhoneOff className="h-3 w-3" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  {isVoiceJoined ? (
+                    <button
+                      onClick={() => {
+                        leaveVoiceChannel();
+                        setIsVoiceSettingsOpen(false);
+                      }}
+                      className="w-full py-2.5 rounded-xl bg-neon-red hover:bg-red-600 text-white font-extrabold text-xs uppercase cursor-pointer text-center"
+                    >
+                      Disconnect Voice Channel
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        joinVoiceChannel();
+                        setIsVoiceSettingsOpen(false);
+                      }}
+                      className="w-full py-2.5 rounded-xl bg-neon-cyan hover:bg-cyan-600 text-midnight font-extrabold text-xs uppercase cursor-pointer text-center"
+                    >
+                      Connect Voice Channel
+                    </button>
+                  )}
+                </div>
+
+                {isAdmin && (
+                  <div className="bg-void/40 border border-white/5 rounded-xl p-3 space-y-2 mt-2">
+                    <span className="text-[9px] uppercase font-black text-neon-gold block leading-none">
+                      Voice Admin Controls
+                    </span>
+                    <div className="grid grid-cols-2 gap-2 text-[10px] font-black uppercase">
+                      <button
+                        onClick={() => {
+                          socket.emit('admin-voice-control', { roomCode, action: 'mute-all' });
+                          setIsVoiceSettingsOpen(false);
+                        }}
+                        className="bg-glass border border-border-custom hover:bg-glass-hover hover:border-neon-gold/50 p-2 rounded-lg text-center cursor-pointer text-white"
+                      >
+                        Mute All
+                      </button>
+                      <button
+                        onClick={() => {
+                          socket.emit('admin-voice-control', { roomCode, action: 'end-voice' });
+                          setIsVoiceSettingsOpen(false);
+                        }}
+                        className="bg-glass border border-border-custom hover:bg-glass-hover hover:border-neon-red/50 p-2 rounded-lg text-center cursor-pointer text-neon-red"
+                      >
+                        End Session
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
