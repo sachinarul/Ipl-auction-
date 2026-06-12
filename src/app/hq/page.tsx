@@ -38,6 +38,7 @@ export default function FranchiseHQ() {
   const [submittedLocal, setSubmittedLocal] = useState(false);
   const [selectedForSwap, setSelectedForSwap] = useState<number | 'impact' | null>(null);
   const [assigningSlot, setAssigningSlot] = useState<number | 'impact' | null>(null);
+  const [activeSlotAction, setActiveSlotAction] = useState<number | 'impact' | null>(null);
   const [modalRoleFilter, setModalRoleFilter] = useState<'ALL' | PlayerRole>('ALL');
 
   // Rankings States
@@ -57,6 +58,21 @@ export default function FranchiseHQ() {
       setViewedTeamId(userTeamId);
     }
   }, [userTeamId, viewedTeamId, router]);
+
+  // Set tab based on URL search params safely
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab === 'lineup') {
+        setActiveTab('lineup');
+      } else if (tab === 'rankings') {
+        setActiveTab('rankings');
+      } else if (tab === 'roster') {
+        setActiveTab('roster');
+      }
+    }
+  }, []);
 
   // Sync submitted team state
   useEffect(() => {
@@ -311,7 +327,7 @@ export default function FranchiseHQ() {
       setSelectedForSwap(null);
     } else {
       if (playerInSlot) {
-        setSelectedForSwap(index);
+        setActiveSlotAction(index);
       } else {
         setAssigningSlot(index);
       }
@@ -1862,6 +1878,141 @@ export default function FranchiseHQ() {
                   Cancel
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Slot Actions Modal for Mobile / Quick Editing */}
+      <AnimatePresence>
+        {activeSlotAction !== null && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-midnight/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="glass-panel w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+            >
+              {/* Modal Header */}
+              {(() => {
+                const isImpact = activeSlotAction === 'impact';
+                const player = isImpact ? impactPlayer : playingXI[activeSlotAction as number];
+                if (!player) return null;
+                const isCaptain = captainId === player.id;
+                const isVC = viceCaptainId === player.id;
+
+                return (
+                  <>
+                    <div className="p-5 border-b border-border-custom bg-void/50 flex justify-between items-center">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xl">{player.flag}</span>
+                          <span className="font-extrabold text-sm text-white uppercase tracking-wide truncate max-w-[180px]">
+                            {player.name}
+                          </span>
+                          {player.overseas && (
+                            <span className="text-[7px] px-1 bg-neon-cyan/20 text-neon-cyan rounded font-bold uppercase shrink-0">OS</span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-av-muted mt-1 font-bold uppercase tracking-wider">
+                          {isImpact ? 'Impact Player' : `Playing XI Slot #${(activeSlotAction as number) + 1}`} • OVR {player.overall}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setActiveSlotAction(null)}
+                        className="p-1 text-av-muted hover:text-white transition-colors"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+
+                    {/* Actions List */}
+                    <div className="p-4 space-y-2 bg-void/20">
+                      {/* Replace Player */}
+                      <button
+                        onClick={() => {
+                          setAssigningSlot(activeSlotAction);
+                          setActiveSlotAction(null);
+                        }}
+                        className="w-full bg-glass hover:bg-glass-hover text-white py-3 px-4 rounded-xl text-xs font-bold transition-all border border-border-custom text-left flex items-center justify-between cursor-pointer"
+                      >
+                        <span>🔄 Replace / Select from Bench</span>
+                        <ChevronRight className="h-4 w-4 text-av-muted" />
+                      </button>
+
+                      {/* Swap with another slot */}
+                      <button
+                        onClick={() => {
+                          setSelectedForSwap(activeSlotAction);
+                          setActiveSlotAction(null);
+                        }}
+                        className="w-full bg-glass hover:bg-glass-hover text-white py-3 px-4 rounded-xl text-xs font-bold transition-all border border-border-custom text-left flex items-center justify-between cursor-pointer"
+                      >
+                        <span>⇆ Swap with another Slot</span>
+                        <ChevronRight className="h-4 w-4 text-av-muted" />
+                      </button>
+
+                      {/* Set Captain (only for Playing XI) */}
+                      {!isImpact && (
+                        <button
+                          onClick={() => {
+                            handleSetCaptain(player.id);
+                            setActiveSlotAction(null);
+                          }}
+                          className={`w-full py-3 px-4 rounded-xl text-xs font-bold transition-all border text-left flex items-center justify-between cursor-pointer ${
+                            isCaptain 
+                              ? 'bg-neon-gold/10 border-neon-gold/30 text-neon-gold' 
+                              : 'bg-glass border-border-custom text-white hover:bg-glass-hover'
+                          }`}
+                        >
+                          <span>👑 {isCaptain ? 'Captain (C) Assigned' : 'Make Captain (C)'}</span>
+                          {isCaptain && <Check className="h-4 w-4 text-neon-gold" />}
+                        </button>
+                      )}
+
+                      {/* Set Vice Captain (only for Playing XI) */}
+                      {!isImpact && (
+                        <button
+                          onClick={() => {
+                            handleSetViceCaptain(player.id);
+                            setActiveSlotAction(null);
+                          }}
+                          className={`w-full py-3 px-4 rounded-xl text-xs font-bold transition-all border text-left flex items-center justify-between cursor-pointer ${
+                            isVC 
+                              ? 'bg-neon-cyan/10 border-neon-cyan/30 text-neon-cyan' 
+                              : 'bg-glass border-border-custom text-white hover:bg-glass-hover'
+                          }`}
+                        >
+                          <span>⭐ {isVC ? 'Vice-Captain (VC) Assigned' : 'Make Vice-Captain (VC)'}</span>
+                          {isVC && <Check className="h-4 w-4 text-neon-cyan" />}
+                        </button>
+                      )}
+
+                      {/* Remove player */}
+                      <button
+                        onClick={() => {
+                          handleRemovePlayer(activeSlotAction);
+                          setActiveSlotAction(null);
+                        }}
+                        className="w-full bg-void hover:bg-neon-red/10 hover:text-neon-red py-3 px-4 rounded-xl text-xs font-bold transition-all border border-neon-red/25 text-neon-red text-left flex items-center justify-between cursor-pointer"
+                      >
+                        <span>❌ Remove from Lineup</span>
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="p-4 border-t border-border-custom bg-void/50 flex justify-end">
+                      <button
+                        onClick={() => setActiveSlotAction(null)}
+                        className="bg-glass border border-border-custom hover:bg-glass-hover text-white text-xs px-4 py-2 rounded-lg font-bold cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </>
+                );
+              })()}
             </motion.div>
           </div>
         )}
