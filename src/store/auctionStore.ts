@@ -27,6 +27,31 @@ interface AuctionStore {
   minPlayersToStart: number;
   setOrder: string[];
   disabledSets: string[];
+  submittedTeams: Record<string, {
+    playingXI: Player[];
+    impactPlayer: Player | null;
+    captainId: number | null;
+    viceCaptainId: number | null;
+    submitted: boolean;
+  }>;
+  aiRankings: Array<{
+    teamId: string;
+    teamName: string;
+    teamAbbr: string;
+    teamEmoji: string;
+    primaryColor: string;
+    overallScore: number;
+    battingScore: number;
+    bowlingScore: number;
+    arScore: number;
+    wkScore: number;
+    impactScore: number;
+    strengths: string[];
+    weaknesses: string[];
+    predictedPosition: number;
+  }> | null;
+  rankingsPublished: boolean;
+  lockedRankings: boolean;
   
   // Game data sync
   teams: Team[];
@@ -67,6 +92,7 @@ interface AuctionStore {
   placeBid: (callback?: (res: { success: boolean; reason?: string }) => void) => void;
   sendChatMessage: (text: string) => void;
   triggerAdminAction: (action: string, extra?: any) => void;
+  submitTeam: (playingXI: Player[], impactPlayer: Player, captainId: number, viceCaptainId: number, callback?: (res: { success: boolean; reason?: string }) => void) => void;
   clearError: () => void;
 }
 
@@ -86,6 +112,10 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
   minPlayersToStart: 1,
   setOrder: [],
   disabledSets: [],
+  submittedTeams: {},
+  aiRankings: null,
+  rankingsPublished: false,
+  lockedRankings: false,
   
   teams: [],
   currentPlayer: null,
@@ -154,6 +184,10 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
         minPlayersToStart: state.minPlayersToStart || 1,
         setOrder: state.setOrder || [],
         disabledSets: state.disabledSets || [],
+        submittedTeams: state.submittedTeams || {},
+        aiRankings: state.aiRankings || null,
+        rankingsPublished: state.rankingsPublished || false,
+        lockedRankings: state.lockedRankings || false,
         isAdmin: me ? me.isAdmin : false,
         isReady: me ? me.isReady : false,
         userTeamId: me ? me.teamId : null
@@ -409,6 +443,20 @@ export const useAuctionStore = create<AuctionStore>((set, get) => ({
       socket.emit('admin-action', { roomCode, action, extra }, (res: { success: boolean; reason?: string }) => {
         if (!res.success) {
           set({ errorMsg: res.reason || 'Admin action failed' });
+        }
+      });
+    }
+  },
+
+  submitTeam: (playingXI, impactPlayer, captainId, viceCaptainId, callback) => {
+    const { roomCode } = get();
+    if (roomCode) {
+      socket.emit('submit-team', { roomCode, playingXI, impactPlayer, captainId, viceCaptainId }, (res: { success: boolean; reason?: string }) => {
+        if (res.success) {
+          if (callback) callback({ success: true });
+        } else {
+          set({ errorMsg: res.reason || 'Failed to submit Playing XI' });
+          if (callback) callback({ success: false, reason: res.reason });
         }
       });
     }

@@ -341,7 +341,11 @@ app.prepare().then(() => {
         overall: p.overall,
         marketValueScore: p.marketValueScore
       })) : [],
-      currentIndex: room.currentIndex || 0
+      currentIndex: room.currentIndex || 0,
+      submittedTeams: room.submittedTeams || {},
+      aiRankings: room.aiRankings || null,
+      rankingsPublished: room.rankingsPublished || false,
+      lockedRankings: room.lockedRankings || false
     };
   }
 
@@ -354,6 +358,7 @@ app.prepare().then(() => {
     if (room.currentIndex >= room.playerQueue.length) {
       room.status = 'complete';
       room.phase = 'COMPLETE';
+      autoSubmitAITeams(roomCode, false);
       io.to(roomCode).emit('room-state', getSerializableRoomState(room));
       return;
     }
@@ -591,6 +596,232 @@ app.prepare().then(() => {
     }
   }
 
+  // ─── Post-Auction Team Submissions & AI Power Rankings Helpers ───────────
+
+  function autoSubmitAITeams(roomCode, includeHumans = false) {
+    const room = activeRooms[roomCode];
+    if (!room) return;
+
+    if (!room.submittedTeams) {
+      room.submittedTeams = {};
+    }
+
+    Object.keys(room.teams).forEach(teamId => {
+      const team = room.teams[teamId];
+      if (!team) return;
+
+      const isHuman = room.participants.some(p => p.teamId === teamId);
+      
+      // Auto-submit for non-human teams OR human teams if includeHumans is forced
+      if (!isHuman || includeHumans) {
+        if (!room.submittedTeams[teamId]) {
+          const squad = team.squad || [];
+          if (squad.length === 0) return;
+
+          // Greedy Selection for Playing XI & Impact Player
+          const sortedSquad = [...squad].sort((a, b) => b.overall - a.overall);
+
+          const playingXI = [];
+          const wicketkeepers = sortedSquad.filter(p => p.role === 'WK');
+          
+          let bestWK = wicketkeepers[0];
+          if (bestWK) {
+            playingXI.push(bestWK);
+          }
+
+          let osCount = bestWK && bestWK.overseas ? 1 : 0;
+
+          // Add remaining players
+          for (const p of sortedSquad) {
+            if (playingXI.length >= 11) break;
+            if (bestWK && p.id === bestWK.id) continue;
+
+            if (p.overseas) {
+              if (osCount < 4) {
+                playingXI.push(p);
+                osCount++;
+              }
+            } else {
+              playingXI.push(p);
+            }
+          }
+
+          // Backfill Playing XI if < 11
+          if (playingXI.length < 11) {
+            for (const p of sortedSquad) {
+              if (playingXI.length >= 11) break;
+              if (playingXI.some(x => x.id === p.id)) continue;
+              playingXI.push(p);
+            }
+          }
+
+          // Select Impact Player from remaining bench
+          const bench = squad.filter(p => !playingXI.some(x => x.id === p.id));
+          const sortedBench = [...bench].sort((a, b) => b.overall - a.overall);
+          const impactPlayer = sortedBench[0] || null;
+
+          // Select Captain and Vice-Captain from Playing XI
+          const xiSorted = [...playingXI].sort((a, b) => b.overall - a.overall);
+          const captainId = xiSorted[0] ? xiSorted[0].id : null;
+          const viceCaptainId = xiSorted[1] ? xiSorted[1].id : null;
+
+          room.submittedTeams[teamId] = {
+            playingXI,
+            impactPlayer,
+            captainId,
+            viceCaptainId,
+            submitted: true
+          };
+        }
+      }
+    });
+  }
+
+  function calculateAIRankings(room) {
+    const submittedTeams = room.submittedTeams || {};
+    const teamsList = Object.values(room.teams);
+    const rankings = [];
+
+    teamsList.forEach(team => {
+      const submission = submittedTeams[team.id];
+      if (!submission || !submission.submitted) return;
+
+      const xi = submission.playingXI || [];
+      const impact = submission.impactPlayer;
+      if (xi.length === 0) return;
+
+      // 1. Batting Strength (25%): Average batting of top 7 players
+      const battingScores = [...xi].map(p => p.batting || 50).sort((a, b) => b - a);
+      const batAvg = battingScores.slice(0, 7).reduce((sum, val) => sum + val, 0) / Math.min(7, battingScores.length) || 50;
+
+      // 2. Bowling Strength (25%): Average bowling of top 5 bowlers (BOWL or AR)
+      const bowlers = xi.filter(p => p.role === 'BOWL' || p.role === 'AR');
+      const bowlingScores = bowlers.map(p => p.bowling || 50).sort((a, b) => b - a);
+      const bowlAvg = bowlingScores.slice(0, 5).reduce((sum, val) => sum + val, 0) / Math.max(1, Math.min(5, bowlingScores.length)) || 50;
+
+      // 3. All-Rounder Quality (15%): Average overall of ARs * factor of count
+      const arPlayers = xi.filter(p => p.role === 'AR');
+      const arAvg = arPlayers.length > 0 
+        ? arPlayers.reduce((sum, p) => sum + p.overall, 0) / arPlayers.length 
+        : 40;
+      const arFactor = Math.min(1.0, arPlayers.length / 3); 
+      const arScore = arAvg * arFactor + (1.0 - arFactor) * 40;
+
+      // 4. Wicketkeeper Quality (5%): best OVR of WK
+      const wks = xi.filter(p => p.role === 'WK');
+      const wkScore = wks.length > 0 
+        ? Math.max(...wks.map(p => p.overall)) 
+        : 40;
+
+      // 5. Opening Pair Strength (10%): average batting of first 2 slots
+      const opener1 = xi[0] ? (xi[0].batting || 50) : 50;
+      const opener2 = xi[1] ? (xi[1].batting || 50) : 50;
+      const openingScore = (opener1 + opener2) / 2;
+
+      // 6. Middle Order Strength (10%): average batting of slots 3, 4, 5
+      const m3 = xi[2] ? (xi[2].batting || 50) : 50;
+      const m4 = xi[3] ? (xi[3].batting || 50) : 50;
+      const m5 = xi[4] ? (xi[4].batting || 50) : 50;
+      const middleScore = (m3 + m4 + m5) / 3;
+
+      // 7. Finishing Ability (5%): average overall of slots 6, 7
+      const f6 = xi[5] ? (xi[5].overall || 50) : 50;
+      const f7 = xi[6] ? (xi[6].overall || 50) : 50;
+      const finishingScore = (f6 + f7) / 2;
+
+      // 8. Spin Department (2.5%)
+      const spinBowlers = xi.filter(p => p.bowlingStyle && (
+        p.bowlingStyle.toLowerCase().includes('spin') || 
+        p.bowlingStyle.toLowerCase().includes('orthodox') || 
+        p.bowlingStyle.toLowerCase().includes('legbreak') ||
+        p.bowlingStyle.toLowerCase().includes('offbreak')
+      ));
+      const spinScore = spinBowlers.length > 0
+        ? spinBowlers.reduce((sum, p) => sum + (p.bowling || 50), 0) / spinBowlers.length
+        : 50;
+
+      // 9. Pace Department (2.5%)
+      const paceBowlers = xi.filter(p => p.bowlingStyle && (
+        p.bowlingStyle.toLowerCase().includes('fast') || 
+        p.bowlingStyle.toLowerCase().includes('medium') || 
+        p.bowlingStyle.toLowerCase().includes('seam') ||
+        p.bowlingStyle.toLowerCase().includes('pace')
+      ));
+      const paceScore = paceBowlers.length > 0
+        ? paceBowlers.reduce((sum, p) => sum + (p.bowling || 50), 0) / paceBowlers.length
+        : 50;
+
+      // 10. Impact Player Value (5%)
+      const impactScore = impact ? impact.overall : 40;
+
+      // Overall Score Calculation (out of 100)
+      const overallScore = parseFloat((
+        batAvg * 0.25 + 
+        bowlAvg * 0.25 + 
+        arScore * 0.15 + 
+        wkScore * 0.05 + 
+        openingScore * 0.10 + 
+        middleScore * 0.10 + 
+        finishingScore * 0.05 + 
+        spinScore * 0.025 + 
+        paceScore * 0.025 + 
+        impactScore * 0.05
+      ).toFixed(1));
+
+      // Heuristic Strengths & Weaknesses
+      const strengths = [];
+      const weaknesses = [];
+
+      if (openingScore >= 84) strengths.push('Elite Opening Pair');
+      if (middleScore >= 84) strengths.push('Elite Middle Order');
+      if (finishingScore >= 82) strengths.push('Devastating Finishers');
+      if (bowlAvg >= 84) strengths.push('Elite Bowlers');
+      if (paceScore >= 84) strengths.push('Fierce Pace Attack');
+      if (spinScore >= 84) strengths.push('Elite Spin Department');
+      if (arScore >= 78) strengths.push('Superb Squad Balance');
+      if (wkScore >= 84) strengths.push('World-Class Wicketkeeper');
+      if (impactScore >= 84) strengths.push('High-Impact Sub Options');
+
+      if (openingScore < 74) weaknesses.push('Unstable Opening Partnership');
+      if (middleScore < 74) weaknesses.push('Vulnerable Middle Order');
+      if (finishingScore < 72) weaknesses.push('Weak Lower-Order Finishing');
+      if (bowlAvg < 76) weaknesses.push('Leaky Bowling Attack');
+      if (arScore < 50) weaknesses.push('Lack of All-Round Depth');
+      if (wks.length === 0) weaknesses.push('No Specialist Wicketkeeper');
+      if (spinScore < 65) weaknesses.push('Weak Spin Department');
+      if (paceScore < 65) weaknesses.push('Weak Pace Department');
+
+      if (strengths.length === 0) strengths.push('Balanced Squad Foundation');
+      if (weaknesses.length === 0) weaknesses.push('No Major Weaknesses Found');
+
+      rankings.push({
+        teamId: team.id,
+        teamName: team.name,
+        teamAbbr: team.abbr,
+        teamEmoji: team.emoji,
+        primaryColor: team.primaryColor,
+        overallScore,
+        battingScore: parseFloat((batAvg / 10).toFixed(1)),
+        bowlingScore: parseFloat((bowlAvg / 10).toFixed(1)),
+        arScore: parseFloat((arScore / 10).toFixed(1)),
+        wkScore: parseFloat((wkScore / 10).toFixed(1)),
+        impactScore: parseFloat((impactScore / 10).toFixed(1)),
+        strengths,
+        weaknesses
+      });
+    });
+
+    // Sort by overallScore descending
+    rankings.sort((a, b) => b.overallScore - a.overallScore);
+
+    // Assign predicted positions
+    rankings.forEach((r, idx) => {
+      r.predictedPosition = idx + 1;
+    });
+
+    return rankings;
+  }
+
   // ─── Socket.IO Event Handlers ────────────────────────────────────────────
 
   io.on('connection', (socket) => {
@@ -751,6 +982,8 @@ app.prepare().then(() => {
         setOrder: [...SET_ORDER],
         disabledSets: [],
         currentIndex: 0,
+        submittedTeams: {},
+        aiRankings: null,
         participants: [{
           socketId: socket.id,
           token: adminToken,
@@ -980,6 +1213,52 @@ app.prepare().then(() => {
       }
     });
 
+    // 6.5. Submit Playing XI & Impact Player
+    socket.on('submit-team', ({ roomCode, playingXI, impactPlayer, captainId, viceCaptainId }, callback) => {
+      const room = activeRooms[roomCode];
+      if (!room) return callback({ success: false, reason: 'Room not found' });
+
+      const p = room.participants.find(x => x.socketId === socket.id);
+      if (!p || !p.teamId) return callback({ success: false, reason: 'Participant not assigned to any team' });
+
+      const teamId = p.teamId;
+
+      // Validation Checks
+      if (!playingXI || playingXI.length !== 11) {
+        return callback({ success: false, reason: 'Playing XI must contain exactly 11 players' });
+      }
+      if (!impactPlayer) {
+        return callback({ success: false, reason: 'Exactly 1 Impact Player is required' });
+      }
+      const osCount = playingXI.filter(x => x.overseas).length;
+      if (osCount > 4) {
+        return callback({ success: false, reason: 'Maximum of 4 Overseas players allowed in the Playing XI' });
+      }
+      if (!captainId || !viceCaptainId) {
+        return callback({ success: false, reason: 'Captain and Vice-Captain must be selected' });
+      }
+
+      if (!room.submittedTeams) room.submittedTeams = {};
+
+      room.submittedTeams[teamId] = {
+        playingXI,
+        impactPlayer,
+        captainId,
+        viceCaptainId,
+        submitted: true
+      };
+
+      callback({ success: true });
+      io.to(roomCode).emit('room-state', getSerializableRoomState(room));
+
+      // Auto rankings check: if all teams submitted, generate rankings
+      const allSubmitted = Object.keys(room.teams).every(tid => room.submittedTeams[tid] && room.submittedTeams[tid].submitted);
+      if (allSubmitted) {
+        room.aiRankings = calculateAIRankings(room);
+        io.to(roomCode).emit('room-state', getSerializableRoomState(room));
+      }
+    });
+
     // 7. Admin Controls Drawer Handler (Kicks, pauses, and backfills)
     socket.on('admin-action', ({ roomCode, action, extra }, callback) => {
       const room = activeRooms[roomCode];
@@ -1110,6 +1389,32 @@ app.prepare().then(() => {
         case 'end':
           room.status = 'complete';
           room.phase = 'COMPLETE';
+          autoSubmitAITeams(roomCode, false);
+          break;
+
+        case 'generate-rankings':
+          room.aiRankings = calculateAIRankings(room);
+          break;
+
+        case 'force-start-analysis':
+          autoSubmitAITeams(roomCode, true);
+          room.aiRankings = calculateAIRankings(room);
+          break;
+
+        case 'publish-rankings':
+          room.rankingsPublished = true;
+          break;
+
+        case 'lock-rankings':
+          room.lockedRankings = true;
+          break;
+
+        case 'reset-rankings':
+          room.submittedTeams = {};
+          room.aiRankings = null;
+          room.rankingsPublished = false;
+          room.lockedRankings = false;
+          autoSubmitAITeams(roomCode, false);
           break;
 
         // V3: Reintroduce unsold players as SET 15: Unsold Round Reintroduction
