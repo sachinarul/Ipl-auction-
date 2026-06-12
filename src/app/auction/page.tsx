@@ -79,10 +79,11 @@ export default function AuctionArena() {
   const [speakerMuted, setSpeakerMuted] = useState(false);
   const [speakerVolume, setSpeakerVolume] = useState(0.8);
 
-  // Refs for WebRTC connections and audio elements
+  // Refs for WebRTC connections and video elements (video forces loudspeaker routing on mobile)
   const pcs = useRef<Record<string, RTCPeerConnection>>({});
   const localStream = useRef<MediaStream | null>(null);
-  const remoteAudios = useRef<Record<string, HTMLAudioElement>>({});
+  const remoteVideos = useRef<Record<string, HTMLVideoElement>>({});
+  const iceCandidatesQueue = useRef<Record<string, RTCIceCandidateInit[]>>({});
 
   // Speaking state detection refs
   const localAudioContext = useRef<AudioContext | null>(null);
@@ -117,9 +118,10 @@ export default function AuctionArena() {
     ]
   };
 
-  const updateRemoteAudiosVolume = (muted: boolean, vol: number) => {
-    Object.values(remoteAudios.current).forEach(audio => {
-      audio.volume = muted ? 0 : vol;
+  const updateRemoteVideosVolume = (muted: boolean, vol: number) => {
+    Object.values(remoteVideos.current).forEach(video => {
+      video.muted = muted;
+      video.volume = vol;
     });
   };
 
@@ -137,12 +139,12 @@ export default function AuctionArena() {
   const toggleSpeaker = () => {
     const nextVal = !speakerMuted;
     setSpeakerMuted(nextVal);
-    updateRemoteAudiosVolume(nextVal, speakerVolume);
+    updateRemoteVideosVolume(nextVal, speakerVolume);
   };
 
   const handleSpeakerVolumeChange = (vol: number) => {
     setSpeakerVolume(vol);
-    updateRemoteAudiosVolume(speakerMuted, vol);
+    updateRemoteVideosVolume(speakerMuted, vol);
   };
 
   const startSpeakingDetection = (stream: MediaStream) => {
@@ -207,11 +209,14 @@ export default function AuctionArena() {
       pcs.current[socketId].close();
       delete pcs.current[socketId];
     }
-    if (remoteAudios.current[socketId]) {
-      const audio = remoteAudios.current[socketId];
-      audio.srcObject = null;
-      audio.remove();
-      delete remoteAudios.current[socketId];
+    if (remoteVideos.current[socketId]) {
+      const video = remoteVideos.current[socketId];
+      video.srcObject = null;
+      video.remove();
+      delete remoteVideos.current[socketId];
+    }
+    if (iceCandidatesQueue.current[socketId]) {
+      delete iceCandidatesQueue.current[socketId];
     }
   };
 
@@ -239,24 +244,36 @@ export default function AuctionArena() {
     // Track event
     pc.ontrack = (event) => {
       console.log(`[WebRTC] Received track from ${targetSocketId}`);
-      const stream = event.streams[0];
+      const stream = event.streams[0] || new MediaStream([event.track]);
       
-      let audio = remoteAudios.current[targetSocketId];
-      if (!audio) {
-        audio = new Audio();
-        audio.autoplay = true;
-        audio.style.display = 'none';
-        document.body.appendChild(audio);
-        remoteAudios.current[targetSocketId] = audio;
+      let video = remoteVideos.current[targetSocketId];
+      if (!video) {
+        video = document.createElement('video');
+        video.autoplay = true;
+        video.playsInline = true;
+        // @ts-ignore
+        video.setAttribute('playsinline', 'true');
+        
+        // Hide visually, but keep layout active to prevent Safari suspending playback
+        video.style.position = 'fixed';
+        video.style.width = '1px';
+        video.style.height = '1px';
+        video.style.opacity = '0.01';
+        video.style.pointerEvents = 'none';
+        video.style.left = '-100px';
+        video.style.top = '-100px';
+        
+        document.body.appendChild(video);
+        remoteVideos.current[targetSocketId] = video;
       }
-      audio.srcObject = stream;
-      audio.volume = speakerMuted ? 0 : speakerVolume;
-      audio.play().catch(err => console.warn("Audio play failed:", err));
+      video.srcObject = stream;
+      video.muted = speakerMuted;
+      video.volume = speakerVolume;
+      video.play().catch(err => console.warn("Video play failed:", err));
     };
 
     pc.oniceconnectionstatechange = () => {
       if (
-        pc.iceConnectionState === 'disconnected' ||
         pc.iceConnectionState === 'failed' ||
         pc.iceConnectionState === 'closed'
       ) {
@@ -329,6 +346,7 @@ export default function AuctionArena() {
       cleanupPeer(socketId);
     });
     pcs.current = {};
+    iceCandidatesQueue.current = {};
 
     socket.emit('leave-voice', { roomCode });
     setIsVoiceJoined(false);
@@ -355,6 +373,27 @@ export default function AuctionArena() {
       });
     };
 
+    const queueIceCandidate = (socketId: string, candidate: any) => {
+      if (!iceCandidatesQueue.current[socketId]) {
+        iceCandidatesQueue.current[socketId] = [];
+      }
+      iceCandidatesQueue.current[socketId].push(candidate);
+    };
+
+    const processQueuedIceCandidates = async (socketId: string, peerConn: RTCPeerConnection) => {
+      const queue = iceCandidatesQueue.current[socketId];
+      if (!queue || queue.length === 0) return;
+      console.log(`[WebRTC] Processing ${queue.length} queued ICE candidates for ${socketId}`);
+      for (const candidate of queue) {
+        try {
+          await peerConn.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (e) {
+          console.error("Error adding queued ICE candidate:", e);
+        }
+      }
+      iceCandidatesQueue.current[socketId] = [];
+    };
+
     const handleVoiceSignal = async ({ senderSocketId, signal }: any) => {
       let pc = pcs.current[senderSocketId];
 
@@ -364,21 +403,25 @@ export default function AuctionArena() {
             pc = createPeerConnection(senderSocketId);
           }
           await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+          await processQueuedIceCandidates(senderSocketId, pc);
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
           socket.emit('voice-signal', { targetSocketId: senderSocketId, signal: { sdp: answer } });
         } else if (signal.sdp.type === 'answer') {
           if (pc) {
             await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+            await processQueuedIceCandidates(senderSocketId, pc);
           }
         }
       } else if (signal.candidate) {
-        if (pc) {
+        if (pc && pc.remoteDescription) {
           try {
             await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
           } catch (e) {
             console.error("Error adding ICE candidate:", e);
           }
+        } else {
+          queueIceCandidate(senderSocketId, signal.candidate);
         }
       }
     };
@@ -442,6 +485,30 @@ export default function AuctionArena() {
       socket.off('voice-control-action', handleVoiceControlAction);
     };
   }, [roomCode, micMuted, speakerMuted, speakerVolume]);
+
+  // Gesture listener to unlock audio/video playback on iOS/Safari
+  useEffect(() => {
+    const unlockAudio = () => {
+      if (typeof window === 'undefined') return;
+      const audio = new Audio();
+      audio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAAA';
+      audio.play().catch(err => console.warn("[WebRTC] Audio unlock failed:", err));
+    };
+
+    const handleGesture = () => {
+      unlockAudio();
+      document.removeEventListener('click', handleGesture);
+      document.removeEventListener('touchstart', handleGesture);
+    };
+
+    document.addEventListener('click', handleGesture);
+    document.addEventListener('touchstart', handleGesture);
+
+    return () => {
+      document.removeEventListener('click', handleGesture);
+      document.removeEventListener('touchstart', handleGesture);
+    };
+  }, []);
 
   // Sync voiceChat setting from roomType (ON for private, OFF for public by default)
   useEffect(() => {
