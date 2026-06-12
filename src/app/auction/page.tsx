@@ -1193,11 +1193,18 @@ export default function AuctionArena() {
               { key: 'spotlight', label: 'Spotlight', icon: '🏏' },
               { key: 'standings', label: 'Standings', icon: '🏆' },
               { key: 'chat',      label: 'Chat',      icon: '💬' },
-            ] as { key: typeof mobileTab; label: string; icon: string }[]
+              { key: 'lineup',    label: 'HQ Lineup',   icon: '📋' },
+            ]
           ).map(tab => (
             <button
               key={tab.key}
-              onClick={() => setMobileTab(tab.key)}
+              onClick={() => {
+                if (tab.key === 'lineup') {
+                  router.push('/hq');
+                } else {
+                  setMobileTab(tab.key as any);
+                }
+              }}
               className={`flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-[10px] font-black uppercase tracking-wider transition-all duration-200 ${
                 mobileTab === tab.key
                   ? 'text-neon-gold border-t-2 border-neon-gold bg-neon-gold/5'
