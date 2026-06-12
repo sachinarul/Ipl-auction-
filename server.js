@@ -530,7 +530,7 @@ app.prepare().then(() => {
 
       // Determine probability based on strategy, category, and budget pressure
       let shouldBid = false;
-      const isMarquee = player.category === 'SET 1: Marquee Players';
+      const isMarquee = player.set === 'MARQUEE';
 
       let prob = 0.45;
       if (strategy === 'aggressive') prob = 0.65;
@@ -1020,7 +1020,7 @@ app.prepare().then(() => {
             const playerQueue = [];
             setOrder.forEach(set => {
               if (disabledSets.includes(set)) return;
-              const setPlayers = room.playersData.filter(p => p.category === set).sort(() => Math.random() - 0.5);
+              const setPlayers = room.playersData.filter(p => p.set === set).sort(() => Math.random() - 0.5);
               playerQueue.push(...setPlayers);
             });
             room.playerQueue = playerQueue;
