@@ -1003,7 +1003,17 @@ export default function AuctionArena() {
 
   /** Left: Player spotlight card */
   const renderSpotlightPanel = () => (
-    <div className="lg:col-span-8 flex flex-col justify-between glass-panel rounded-2xl p-6 relative overflow-hidden">
+    <div 
+      className="lg:col-span-8 flex flex-col justify-between glass-panel rounded-2xl p-6 relative overflow-hidden transition-all duration-500"
+      style={{
+        borderColor: currentBidderId 
+          ? `${teams.find((t) => t.id === currentBidderId)?.primaryColor}aa` 
+          : 'var(--av-border)',
+        boxShadow: currentBidderId 
+          ? `0 0 30px ${teams.find((t) => t.id === currentBidderId)?.primaryColor}25, inset 0 0 15px ${teams.find((t) => t.id === currentBidderId)?.primaryColor}10` 
+          : 'none',
+      }}
+    >
       <AnimatePresence mode="wait">
         {currentPlayer ? (
           <motion.div
@@ -1052,7 +1062,13 @@ export default function AuctionArena() {
                     cx="72"
                     cy="72"
                     r="64"
-                    className="stroke-neon-gold fill-transparent transition-all duration-1000 ease-out"
+                    style={{
+                      stroke: currentPlayer.overall >= 90 ? 'var(--av-neon-gold)' :
+                              currentPlayer.overall >= 80 ? 'var(--av-neon-cyan)' :
+                              currentPlayer.overall >= 70 ? 'var(--av-neon-green)' :
+                              'var(--av-neon-purple)'
+                    }}
+                    className="fill-transparent transition-all duration-1000 ease-out"
                     strokeWidth="10"
                     strokeDasharray={2 * Math.PI * 64}
                     strokeDashoffset={2 * Math.PI * 64 * (1 - currentPlayer.overall / 100)}
@@ -1060,7 +1076,23 @@ export default function AuctionArena() {
                   />
                 </svg>
                 <div className="absolute flex flex-col items-center">
-                  <span className="text-4xl font-black text-neon-gold">{currentPlayer.overall}</span>
+                  <span 
+                    className="text-4xl font-black transition-all duration-300"
+                    style={{
+                      color: currentPlayer.overall >= 90 ? 'var(--av-neon-gold)' :
+                             currentPlayer.overall >= 80 ? 'var(--av-neon-cyan)' :
+                             currentPlayer.overall >= 70 ? 'var(--av-neon-green)' :
+                             'var(--av-neon-purple)',
+                      textShadow: `0 0 12px ${
+                        currentPlayer.overall >= 90 ? 'var(--av-neon-gold)' :
+                        currentPlayer.overall >= 80 ? 'var(--av-neon-cyan)' :
+                        currentPlayer.overall >= 70 ? 'var(--av-neon-green)' :
+                        'var(--av-neon-purple)'
+                      }40`
+                    }}
+                  >
+                    {currentPlayer.overall}
+                  </span>
                   <span className="text-[10px] text-av-muted uppercase tracking-widest font-bold">OVR Rating</span>
                 </div>
               </div>
@@ -2172,7 +2204,11 @@ export default function AuctionArena() {
   );
 
   return (
-    <div className="min-h-screen flex flex-col bg-midnight text-av-text relative">
+    <div className="min-h-screen flex flex-col bg-midnight text-av-text bg-grid-pattern relative overflow-hidden">
+      {/* Ambient background glows */}
+      <div className="absolute top-[-10%] left-[-15%] w-[45%] h-[45%] bg-neon-purple/5 rounded-full blur-[130px] pointer-events-none animate-pulse z-0" />
+      <div className="absolute bottom-[20%] right-[-10%] w-[40%] h-[40%] bg-neon-cyan/5 rounded-full blur-[130px] pointer-events-none animate-pulse z-0" />
+      
       {/* Screen Highlight on final 3 seconds */}
       {phase === 'BIDDING' && countdown <= 3 && countdown > 0 && !paused && (
         <div className="pointer-events-none fixed inset-0 z-50 ring-[16px] ring-neon-red/15 animate-pulse shadow-[inset_0_0_80px_rgba(255,51,102,0.2)]" />

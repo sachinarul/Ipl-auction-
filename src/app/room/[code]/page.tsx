@@ -196,7 +196,11 @@ export default function RoomLobby() {
   const roomLiveStatus = isRoomAllReady ? 'ALL READY' : 'WAITING FOR PLAYERS';
 
   return (
-    <div className="min-h-screen flex flex-col bg-midnight text-av-text">
+    <div className="min-h-screen flex flex-col relative bg-midnight text-av-text bg-grid-pattern overflow-hidden">
+      {/* Ambient glowing background elements */}
+      <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-neon-purple/5 rounded-full blur-[130px] pointer-events-none animate-pulse z-0" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-neon-cyan/5 rounded-full blur-[130px] pointer-events-none animate-pulse z-0" />
+
       <Navbar />
 
       <div className="flex-1 max-w-7xl w-full mx-auto px-4 py-8 relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -286,9 +290,14 @@ export default function RoomLobby() {
                   return (
                     <div
                       key={p.socketId}
-                      className="flex items-center justify-between p-3 rounded-xl border border-white/5 bg-void/50 transition-all duration-200 hover:border-white/10"
+                      className="flex items-center justify-between p-3.5 rounded-2xl border transition-all duration-300 transform hover:scale-[1.02] cursor-default"
                       style={{
-                        borderLeft: pTeam ? `3px solid ${pTeam.primaryColor}` : '3px solid transparent'
+                        borderColor: pTeam ? `${pTeam.primaryColor}30` : 'var(--av-border)',
+                        background: pTeam 
+                          ? `linear-gradient(135deg, ${pTeam.primaryColor}12, ${pTeam.secondaryColor}06)` 
+                          : 'var(--av-glass)',
+                        boxShadow: pTeam ? `0 0 15px ${pTeam.primaryColor}08` : 'none',
+                        borderLeft: pTeam ? `4px solid ${pTeam.primaryColor}` : '4px solid transparent'
                       }}
                     >
                       <div className="flex items-center space-x-2.5">
@@ -298,23 +307,23 @@ export default function RoomLobby() {
                         <div>
                           <div className="flex items-center space-x-1.5">
                             <span className="text-sm font-bold text-white uppercase">
-                              {p.name} {pTeam ? ` - ${pTeam.name}` : ' - Spectator'}
+                              {p.name} {pTeam ? ` - ${pTeam.abbr}` : ' - Spectator'}
                             </span>
                             {p.isAdmin && <span className="text-[8px] px-1.5 py-0.5 bg-neon-gold text-midnight font-black rounded tracking-wider">HOST</span>}
                           </div>
                           <span className="text-[10px] text-av-muted">
-                            {pTeam ? `${pTeam.emoji} Team Manager` : 'Spectator'}
+                            {pTeam ? `${pTeam.emoji} ${pTeam.name}` : 'Spectator'}
                           </span>
                         </div>
                       </div>
 
                       {p.isReady ? (
-                        <div className="flex items-center space-x-1 bg-neon-green/10 border border-neon-green/30 text-neon-green text-[10px] font-black px-2 py-1 rounded-lg">
+                        <div className="flex items-center space-x-1 bg-neon-green/10 border border-neon-green/30 text-neon-green text-[10px] font-black px-2.5 py-1 rounded-lg">
                           <CheckCircle2 className="h-3.5 w-3.5" />
                           <span>READY</span>
                         </div>
                       ) : (
-                        <div className="flex items-center space-x-1 bg-neon-red/10 border border-neon-red/30 text-neon-red text-[10px] font-black px-2 py-1 rounded-lg animate-pulse">
+                        <div className="flex items-center space-x-1 bg-neon-red/10 border border-neon-red/30 text-neon-red text-[10px] font-black px-2.5 py-1 rounded-lg animate-pulse">
                           <span className="h-1.5 w-1.5 rounded-full bg-neon-red" />
                           <span>NOT READY</span>
                         </div>

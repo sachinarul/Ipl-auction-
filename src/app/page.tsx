@@ -76,7 +76,12 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col relative bg-midnight text-av-text">
+    <div className="min-h-screen flex flex-col relative bg-midnight text-av-text bg-grid-pattern overflow-hidden">
+      {/* Ambient glowing background elements */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-neon-purple/10 rounded-full blur-[130px] pointer-events-none animate-pulse z-0" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-neon-cyan/10 rounded-full blur-[130px] pointer-events-none animate-pulse z-0" />
+      <div className="absolute top-[25%] right-[10%] w-[350px] h-[350px] bg-neon-gold/5 rounded-full blur-[110px] pointer-events-none animate-float z-0" />
+
       <Navbar />
 
       <div className="flex-1 flex flex-col items-center justify-center max-w-7xl mx-auto px-4 py-8 w-full z-10">
@@ -195,18 +200,18 @@ export default function LandingPage() {
                       setMode('create');
                       clearError();
                     }}
-                    className="w-full max-w-xs p-6 glass-panel rounded-2xl text-center flex flex-col items-center gap-4 hover:border-neon-gold/50 cursor-pointer"
+                    className="w-full max-w-xs p-8 glass-panel rounded-3xl text-center flex flex-col items-center gap-5 hover:border-neon-gold/60 cursor-pointer transform hover:scale-[1.03] hover:shadow-[0_0_35px_rgba(245,197,24,0.2)] transition-all duration-300 group"
                   >
-                    <div className="h-12 w-12 rounded-full bg-neon-gold/10 flex items-center justify-center border border-neon-gold/20">
-                      <Shield className="h-6 w-6 text-neon-gold" />
+                    <div className="h-14 w-14 rounded-2xl bg-neon-gold/10 flex items-center justify-center border border-neon-gold/25 group-hover:bg-neon-gold/20 group-hover:scale-110 transition-all duration-300">
+                      <Shield className="h-7 w-7 text-neon-gold filter drop-shadow-[0_0_5px_rgba(245,197,24,0.3)]" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-black text-white uppercase tracking-wider">Create Room</h3>
-                      <p className="text-xs text-av-muted mt-1">Host your own auction room and manage bid settings as Admin.</p>
+                      <h3 className="text-xl font-black text-white uppercase tracking-wider group-hover:text-neon-gold transition-colors duration-200">Create Room</h3>
+                      <p className="text-xs text-av-muted mt-2 leading-relaxed">Host your own auction room and manage bid settings as Admin.</p>
                     </div>
-                    <div className="flex items-center text-xs font-extrabold text-neon-gold space-x-1.5 uppercase mt-2">
+                    <div className="flex items-center text-xs font-extrabold text-neon-gold space-x-2 uppercase mt-3 tracking-widest">
                       <span>Get Started</span>
-                      <ArrowRight className="h-3.5 w-3.5" />
+                      <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
                     </div>
                   </button>
 
@@ -216,18 +221,18 @@ export default function LandingPage() {
                       setMode('join');
                       clearError();
                     }}
-                    className="w-full max-w-xs p-6 glass-panel rounded-2xl text-center flex flex-col items-center gap-4 hover:border-neon-cyan/50 cursor-pointer"
+                    className="w-full max-w-xs p-8 glass-panel rounded-3xl text-center flex flex-col items-center gap-5 hover:border-neon-cyan/60 cursor-pointer transform hover:scale-[1.03] hover:shadow-[0_0_35px_rgba(0,212,255,0.2)] transition-all duration-300 group"
                   >
-                    <div className="h-12 w-12 rounded-full bg-neon-cyan/10 flex items-center justify-center border border-neon-cyan/20">
-                      <Users className="h-6 w-6 text-neon-cyan" />
+                    <div className="h-14 w-14 rounded-2xl bg-neon-cyan/10 flex items-center justify-center border border-neon-cyan/25 group-hover:bg-neon-cyan/20 group-hover:scale-110 transition-all duration-300">
+                      <Users className="h-7 w-7 text-neon-cyan filter drop-shadow-[0_0_5px_rgba(0,212,255,0.3)]" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-black text-white uppercase tracking-wider">Join Room</h3>
-                      <p className="text-xs text-av-muted mt-1">Enter a lobby code to connect to a friend's active auction room.</p>
+                      <h3 className="text-xl font-black text-white uppercase tracking-wider group-hover:text-neon-cyan transition-colors duration-200">Join Room</h3>
+                      <p className="text-xs text-av-muted mt-2 leading-relaxed">Enter a lobby code to connect to a friend's active auction room.</p>
                     </div>
-                    <div className="flex items-center text-xs font-extrabold text-neon-cyan space-x-1.5 uppercase mt-2">
+                    <div className="flex items-center text-xs font-extrabold text-neon-cyan space-x-2 uppercase mt-3 tracking-widest">
                       <span>Enter Code</span>
-                      <ArrowRight className="h-3.5 w-3.5" />
+                      <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
                     </div>
                   </button>
                 </motion.div>
@@ -357,24 +362,45 @@ export default function LandingPage() {
                   </div>
 
                   {/* IPL Team Selector */}
-                  <div className="flex flex-col gap-1.5">
+                  <div className="flex flex-col gap-2">
                     <label className="text-[10px] text-av-muted uppercase font-bold tracking-wider">Select Your Team</label>
                     <div className="grid grid-cols-5 gap-2">
-                      {TEAMS_DB.map((t) => (
-                        <button
-                          key={t.id}
-                          type="button"
-                          onClick={() => selectUserTeam(t.id as TeamId)}
-                          className={`py-2 rounded-lg border text-xs font-bold transition-all duration-200 flex flex-col items-center justify-center gap-1 ${
-                            userTeamId === t.id
-                              ? 'border-neon-gold bg-neon-gold/15 text-white shadow-[0_0_10px_rgba(245,197,24,0.1)]'
-                              : 'border-border-custom bg-glass hover:bg-glass-hover text-white/70'
-                          }`}
-                        >
-                          <span className="text-xl">{t.emoji}</span>
-                          <span className="text-[9px] uppercase tracking-wider font-extrabold">{t.abbr}</span>
-                        </button>
-                      ))}
+                      {TEAMS_DB.map((t) => {
+                        const isSelected = userTeamId === t.id;
+                        return (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => selectUserTeam(t.id as TeamId)}
+                            className="py-2.5 rounded-xl border text-xs font-bold transition-all duration-300 flex flex-col items-center justify-center gap-1 cursor-pointer transform hover:scale-105 active:scale-95"
+                            style={{
+                              borderColor: isSelected ? t.primaryColor : 'var(--av-border)',
+                              background: isSelected 
+                                ? `linear-gradient(135deg, ${t.primaryColor}25, ${t.secondaryColor}12)` 
+                                : 'var(--av-glass)',
+                              boxShadow: isSelected ? `0 0 15px ${t.primaryColor}40` : 'none',
+                              color: isSelected ? '#ffffff' : 'rgba(255, 255, 255, 0.7)',
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!isSelected) {
+                                e.currentTarget.style.borderColor = `${t.primaryColor}80`;
+                                e.currentTarget.style.background = `${t.primaryColor}0c`;
+                                e.currentTarget.style.boxShadow = `0 0 12px ${t.primaryColor}20`;
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isSelected) {
+                                e.currentTarget.style.borderColor = 'var(--av-border)';
+                                e.currentTarget.style.background = 'var(--av-glass)';
+                                e.currentTarget.style.boxShadow = 'none';
+                              }
+                            }}
+                          >
+                            <span className="text-xl filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]">{t.emoji}</span>
+                            <span className="text-[9px] uppercase tracking-wider font-extrabold">{t.abbr}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 

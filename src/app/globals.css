@@ -40,7 +40,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-outfit), system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
 }
 
@@ -81,6 +81,24 @@ body {
 .neon-glow-purple {
   box-shadow: 0 0 15px rgba(180, 79, 255, 0.15);
   text-shadow: 0 0 8px rgba(180, 79, 255, 0.3);
+}
+
+/* Premium Background Grid & Floating Elements */
+.bg-grid-pattern {
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px) rotate(0deg) scale(1); }
+  50% { transform: translateY(-30px) rotate(180deg) scale(1.1); }
+  100% { transform: translateY(0px) rotate(360deg) scale(1); }
+}
+
+.animate-float {
+  animation: float 25s infinite ease-in-out;
 }
 
 /* Custom Scrollbar */
