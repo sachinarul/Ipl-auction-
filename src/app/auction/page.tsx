@@ -1780,7 +1780,7 @@ export default function AuctionArena() {
                 cx="24"
                 cy="24"
                 r="20"
-                className={`fill-transparent transition-all duration-1000 ${
+                className={`fill-transparent transition-[stroke-dashoffset] duration-200 ease-out ${
                   countdown <= 3 ? 'stroke-neon-red animate-pulse' : 'stroke-neon-cyan'
                 }`}
                 strokeWidth="2.5"
@@ -2205,9 +2205,19 @@ export default function AuctionArena() {
 
   return (
     <div className="min-h-screen flex flex-col bg-midnight text-av-text bg-grid-pattern relative overflow-hidden">
-      {/* Ambient background glows */}
-      <div className="absolute top-[-10%] left-[-15%] w-[45%] h-[45%] bg-neon-purple/5 rounded-full blur-[130px] pointer-events-none animate-pulse z-0" />
-      <div className="absolute bottom-[20%] right-[-10%] w-[40%] h-[40%] bg-neon-cyan/5 rounded-full blur-[130px] pointer-events-none animate-pulse z-0" />
+      {/* Ambient background glows using performant CSS radial gradients */}
+      <div 
+        className="absolute top-[-10%] left-[-15%] w-[45vw] h-[45vw] pointer-events-none z-0 opacity-60"
+        style={{
+          background: 'radial-gradient(circle, rgba(180, 79, 255, 0.08) 0%, rgba(180, 79, 255, 0) 70%)'
+        }}
+      />
+      <div 
+        className="absolute bottom-[20%] right-[-10%] w-[40vw] h-[40vw] pointer-events-none z-0 opacity-60"
+        style={{
+          background: 'radial-gradient(circle, rgba(0, 212, 255, 0.06) 0%, rgba(0, 212, 255, 0) 70%)'
+        }}
+      />
       
       {/* Screen Highlight on final 3 seconds */}
       {phase === 'BIDDING' && countdown <= 3 && countdown > 0 && !paused && (
@@ -2406,7 +2416,7 @@ export default function AuctionArena() {
                     cx="16"
                     cy="16"
                     r="13"
-                    className={`fill-transparent transition-all duration-1000 ${countdown <= 3 && phase === 'BIDDING' ? 'stroke-neon-red animate-pulse' : 'stroke-neon-cyan'}`}
+                    className={`fill-transparent transition-[stroke-dashoffset] duration-200 ease-out ${countdown <= 3 && phase === 'BIDDING' ? 'stroke-neon-red animate-pulse' : 'stroke-neon-cyan'}`}
                     strokeWidth="2"
                     strokeDasharray={2 * Math.PI * 13}
                     strokeDashoffset={2 * Math.PI * 13 * (1 - (phase === 'RESOLVING' ? 1.5 : countdown) / (phase === 'RESOLVING' ? 1.5 : timerDuration))}

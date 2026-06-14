@@ -135,10 +135,24 @@ export default function PlayerDatabase() {
     : availableSets.filter((s) => s === setFilter && playersBySet[s]?.length > 0);
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#0B0B12' }}>
+    <div className="min-h-screen flex flex-col relative bg-midnight text-av-text bg-grid-pattern overflow-hidden">
+      {/* Ambient background glows using performant CSS radial gradients */}
+      <div 
+        className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] pointer-events-none z-0 opacity-60"
+        style={{
+          background: 'radial-gradient(circle, rgba(180, 79, 255, 0.08) 0%, rgba(180, 79, 255, 0) 70%)'
+        }}
+      />
+      <div 
+        className="absolute bottom-[-10%] left-[-10%] w-[50vw] h-[50vw] pointer-events-none z-0 opacity-60"
+        style={{
+          background: 'radial-gradient(circle, rgba(0, 212, 255, 0.06) 0%, rgba(0, 212, 255, 0) 70%)'
+        }}
+      />
+
       <Navbar />
 
-      <div className="flex-1 max-w-7xl w-full mx-auto px-4 py-8 space-y-8">
+      <div className="flex-1 max-w-7xl w-full mx-auto px-4 py-8 relative z-10 space-y-8">
 
         {/* ── PAGE HEADER ─────────────────────────────────────────── */}
         <div className="relative overflow-hidden rounded-3xl p-8"

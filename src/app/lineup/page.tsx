@@ -364,7 +364,21 @@ export default function LineupPage() {
   const sessionUserTeam = teams.find((t) => t.id === userTeamId);
 
   return (
-    <div className="min-h-screen flex flex-col bg-midnight text-av-text relative">
+    <div className="min-h-screen flex flex-col relative bg-midnight text-av-text bg-grid-pattern overflow-hidden">
+      {/* Ambient background glows using performant CSS radial gradients */}
+      <div 
+        className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] pointer-events-none z-0 opacity-60"
+        style={{
+          background: 'radial-gradient(circle, rgba(180, 79, 255, 0.08) 0%, rgba(180, 79, 255, 0) 70%)'
+        }}
+      />
+      <div 
+        className="absolute bottom-[-10%] left-[-10%] w-[50vw] h-[50vw] pointer-events-none z-0 opacity-60"
+        style={{
+          background: 'radial-gradient(circle, rgba(0, 212, 255, 0.06) 0%, rgba(0, 212, 255, 0) 70%)'
+        }}
+      />
+
       <Navbar />
 
       {/* Main split screen layout */}

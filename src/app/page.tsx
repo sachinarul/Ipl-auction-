@@ -77,10 +77,26 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen flex flex-col relative bg-midnight text-av-text bg-grid-pattern overflow-hidden">
-      {/* Ambient glowing background elements */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-neon-purple/10 rounded-full blur-[130px] pointer-events-none animate-pulse z-0" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-neon-cyan/10 rounded-full blur-[130px] pointer-events-none animate-pulse z-0" />
-      <div className="absolute top-[25%] right-[10%] w-[350px] h-[350px] bg-neon-gold/5 rounded-full blur-[110px] pointer-events-none animate-float z-0" />
+      {/* Ambient glowing background elements using performant CSS radial gradients */}
+      <div 
+        className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] pointer-events-none z-0 opacity-70"
+        style={{
+          background: 'radial-gradient(circle, rgba(180, 79, 255, 0.12) 0%, rgba(180, 79, 255, 0) 70%)'
+        }}
+      />
+      <div 
+        className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] pointer-events-none z-0 opacity-70"
+        style={{
+          background: 'radial-gradient(circle, rgba(0, 212, 255, 0.08) 0%, rgba(0, 212, 255, 0) 70%)'
+        }}
+      />
+      <div 
+        className="absolute top-[25%] right-[10%] w-[350px] h-[350px] pointer-events-none animate-float z-0"
+        style={{
+          background: 'radial-gradient(circle, rgba(245, 197, 24, 0.05) 0%, rgba(245, 197, 24, 0) 75%)',
+          willChange: 'transform'
+        }}
+      />
 
       <Navbar />
 
