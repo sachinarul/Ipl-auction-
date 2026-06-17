@@ -3,23 +3,26 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="IPL Auction Simulator — Build your dream IPL squad! Bid on real players, outsmart AI teams, and lead your franchise to glory in this immersive cricket auction game." />
-  <title>IPL Auction Simulator 🏏</title>
+  <meta name="description" content="AuctionVerse 3.0 — The most immersive IPL Auction Simulator. Bid on real players, outsmart AI teams, and experience the thrill of a live television auction event." />
+  <title>AuctionVerse 3.0 🏏 IPL Mega Auction</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
   <!-- ╔═══════════════════════════════════════════════════════╗
-       ║  SCREEN 1 — LOBBY                                     ║
+       ║  SCREEN 1 — LOBBY (ARENA ENTRANCE)                   ║
        ╚═══════════════════════════════════════════════════════╝ -->
   <div id="screen-lobby" class="screen active">
     <div class="lobby-container">
 
       <!-- Hero -->
       <div class="lobby-hero">
-        <span class="lobby-ball">🏏</span>
-        <h1 class="lobby-title">IPL Auction Simulator</h1>
-        <p class="lobby-subtitle">Build your dream squad &bull; Outsmart AI teams &bull; Win the trophy</p>
+        <div class="lobby-logo-ring">
+          <span class="lobby-ball">🏏</span>
+        </div>
+        <h1 class="lobby-title">AuctionVerse 3.0</h1>
+        <p class="lobby-subtitle">IPL Mega Auction Simulator &bull; Live Broadcast Experience</p>
+        <span class="lobby-badge">⚡ Season 2025 — All 10 Franchises</span>
       </div>
 
       <!-- Team Selection -->
@@ -47,7 +50,7 @@
         <p class="section-label">⚙️ Configure Auction Sets</p>
         <div class="set-config-container">
           <div class="set-config-header-row">
-            <span>Set Order & Category Name</span>
+            <span>Set Order &amp; Category Name</span>
             <span>Controls</span>
           </div>
           <div id="set-config-list">
@@ -59,7 +62,7 @@
       <!-- Actions -->
       <div class="lobby-actions">
         <button id="btn-start-game" class="btn-primary" disabled onclick="startGame()">
-          🚀 Start Game
+          🏟️ Enter The Arena
         </button>
       </div>
 
@@ -181,9 +184,18 @@
 
 
   <!-- ╔═══════════════════════════════════════════════════════╗
-       ║  SCREEN 4 — AUCTION HALL                             ║
+       ║  SCREEN 4 — AUCTION HALL (THE ARENA)                 ║
        ╚═══════════════════════════════════════════════════════╝ -->
   <div id="screen-auction" class="screen">
+
+    <!-- Arena Background -->
+    <div class="arena-bg" aria-hidden="true">
+      <div class="arena-beam"></div>
+      <div class="arena-beam"></div>
+      <div class="arena-beam"></div>
+      <div class="arena-beam"></div>
+      <div class="arena-crowd"></div>
+    </div>
 
     <!-- SOLD Banner -->
     <div id="sold-banner" class="auction-banner" role="alert" aria-live="assertive">
@@ -197,9 +209,43 @@
       <span class="banner-msg">No bids — player goes unsold</span>
     </div>
 
-    <!-- Auction Header -->
+    <!-- 🔴 LIVE Broadcast Header -->
+    <div class="broadcast-header">
+      <div class="broadcast-left">
+        <div class="live-badge">
+          <div class="live-dot"></div>
+          LIVE
+        </div>
+        <div class="broadcast-title">IPL Mega Auction 2025</div>
+      </div>
+      <div class="broadcast-ticker-wrap">
+        <div class="broadcast-ticker" id="broadcast-ticker">
+          <span class="ticker-item">🏏 <span>AUCTIONVERSE 3.0</span> — LIVE IPL MEGA AUCTION</span>
+          <span class="ticker-item">🔨 Place your bids before the gavel falls!</span>
+          <span class="ticker-item">📋 <span>10 Franchises</span> competing for the finest players</span>
+          <span class="ticker-item">💰 Starting purse: <span>₹120 Crore</span> per franchise</span>
+          <span class="ticker-item">⚡ Marquee players up first — don't miss your chance!</span>
+          <span class="ticker-item">🌍 Overseas player limit: <span>8 per squad</span></span>
+          <span class="ticker-item">📜 <span>RTM Cards</span> allow you to match a rival's bid</span>
+        </div>
+      </div>
+      <div class="broadcast-right">
+        <span class="broadcast-time" id="broadcast-clock">IPL AUCTION</span>
+        <button class="btn-secondary" onclick="openStatsModal()" style="padding:5px 14px; font-size:12px;">
+          📊 Stats
+        </button>
+        <button class="btn-secondary" onclick="exitAuction()" style="padding:5px 14px; font-size:12px;">
+          ← Exit
+        </button>
+      </div>
+    </div>
+
+    <!-- Auction Header (Progress + Title) -->
     <header class="auction-header">
-      <div class="auction-title">🔨 Auction Hall</div>
+      <div class="auction-title">
+        <span class="hammer-icon" id="hammer-icon">🔨</span>
+        Auction Hall
+      </div>
 
       <div class="progress-bar-wrap">
         <span id="progress-text">0 / 36 Players Auctioned</span>
@@ -209,16 +255,9 @@
       </div>
 
       <div class="purse-display" id="auction-purse">₹120.0 Cr</div>
-
-      <button class="btn-secondary" onclick="openStatsModal()" style="flex-shrink:0; margin-right: 8px;">
-        📊 Stats Board
-      </button>
-      <button class="btn-secondary" onclick="exitAuction()" style="flex-shrink:0;">
-        ← Exit
-      </button>
     </header>
 
-    <!-- Teams Status Row -->
+    <!-- Teams Status Row (Broadcast Scorecards) -->
     <div class="teams-status-row-wrap" aria-label="Team purses">
       <div id="teams-status-row">
         <!-- Populated by updateTeamsStatusRow() -->
@@ -291,8 +330,9 @@
 
       </div><!-- /#player-spotlight -->
 
-      <!-- RIGHT — Bid Panel -->
+      <!-- RIGHT — Bid Panel (TV HUD) -->
       <div id="bid-panel">
+        <div class="bid-panel-glow"></div>
 
         <div class="bid-panel-top">
           <!-- Current Bid Amount -->
@@ -339,8 +379,9 @@
 
   </div><!-- /#screen-auction -->
 
+
   <!-- ╔═══════════════════════════════════════════════════════╗
-       ║  AUCTION STATS MODAL                                 ║
+       ║  AUCTION STATS MODAL                                  ║
        ╚═══════════════════════════════════════════════════════╝ -->
   <div id="stats-modal" class="modal-overlay" style="display: none;">
     <div class="modal-content">
@@ -367,52 +408,26 @@
 
       <!-- Tab Contents -->
       <div class="modal-body">
-        <!-- Upcoming Tab -->
         <div id="stats-upcoming" class="stats-tab-content active"></div>
-
-        <!-- Sold Tab -->
-        <div id="stats-sold" class="stats-tab-content"></div>
-
-        <!-- Unsold Tab -->
-        <div id="stats-unsold" class="stats-tab-content"></div>
-
-        <!-- Franchises Tab -->
+        <div id="stats-sold"     class="stats-tab-content"></div>
+        <div id="stats-unsold"   class="stats-tab-content"></div>
         <div id="stats-franchises" class="stats-tab-content"></div>
       </div>
     </div>
   </div>
 
-  <!-- ─── Scripts ───────────────────────────────────────────── -->
-  <script src="players.js"></script>
-  <script src="teams.js"></script>
-  <script src="auction.js"></script>
-  <script src="season.js"></script>
-  <script src="game.js"></script>
+  <!-- ─── SOLD! Celebration Overlay ──────────────────────── -->
+  <div id="sold-celebration">
+    <canvas id="confetti-canvas"></canvas>
+    <div class="sold-overlay-content">
+      <div class="sold-word" id="sold-word-text">SOLD!</div>
+      <div class="sold-player-name" id="sold-player-name-text"></div>
+      <div class="sold-price-tag" id="sold-price-text"></div>
+      <div class="sold-team-reveal" id="sold-team-text"></div>
+    </div>
+  </div>
 
-  <!-- Sync purse displays between screens -->
-  <script>
-    // Keep auction-purse in sync with game state
-    const _origUpdatePurse = typeof updatePurseDisplay === 'function'
-      ? updatePurseDisplay
-      : () => {};
-
-    // Patch: update all purse displays including auction screen
-    document.addEventListener('DOMContentLoaded', () => {
-      const auctionPurseEl = document.getElementById('auction-purse');
-      if (!auctionPurseEl) return;
-
-      // MutationObserver on the HQ purse to mirror it
-      const hqPurse = document.getElementById('hq-purse');
-      if (hqPurse) {
-        const obs = new MutationObserver(() => {
-          if (auctionPurseEl) auctionPurseEl.textContent = hqPurse.textContent;
-        });
-        obs.observe(hqPurse, { childList: true, characterData: true, subtree: true });
-      }
-    });
-  </script>
-
-  <!-- Fullscreen Set Transition Announcement Banner -->
+  <!-- ─── Fullscreen Set Transition Announcement Banner ──── -->
   <div id="set-announcement-overlay" class="set-announcement-overlay">
     <div class="announcement-content">
       <div class="announcement-sub">NOW ENTERING</div>
@@ -424,6 +439,39 @@
       </div>
     </div>
   </div>
+
+  <!-- ─── Scripts ─────────────────────────────────────────── -->
+  <script src="players.js"></script>
+  <script src="teams.js"></script>
+  <script src="auction.js"></script>
+  <script src="season.js"></script>
+  <script src="game.js"></script>
+
+  <!-- Sync purse displays between screens -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const auctionPurseEl = document.getElementById('auction-purse');
+      const hqPurse = document.getElementById('hq-purse');
+      if (hqPurse && auctionPurseEl) {
+        const obs = new MutationObserver(() => {
+          if (auctionPurseEl) auctionPurseEl.textContent = hqPurse.textContent;
+        });
+        obs.observe(hqPurse, { childList: true, characterData: true, subtree: true });
+      }
+
+      // Live clock in broadcast header
+      function updateBroadcastClock() {
+        const el = document.getElementById('broadcast-clock');
+        if (!el) return;
+        const now = new Date();
+        const h = now.getHours().toString().padStart(2,'0');
+        const m = now.getMinutes().toString().padStart(2,'0');
+        el.textContent = `${h}:${m} IST`;
+      }
+      updateBroadcastClock();
+      setInterval(updateBroadcastClock, 30000);
+    });
+  </script>
 
 </body>
 </html>

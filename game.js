@@ -270,10 +270,25 @@ function enterAuctionHall() {
 
   showScreen("screen-auction");
 
+  // Update broadcast ticker with team name
+  const ticker = document.getElementById('broadcast-ticker');
+  if (ticker && gameState.myTeam) {
+    const t = gameState.myTeam;
+    ticker.innerHTML = `
+      <span class="ticker-item">🏏 <span>AUCTIONVERSE 3.0</span> — LIVE IPL MEGA AUCTION</span>
+      <span class="ticker-item">${t.emoji} <span>${t.name}</span> has entered the arena with ₹${t.purse || 120} Crore</span>
+      <span class="ticker-item">🔨 Place your bids before the gavel falls!</span>
+      <span class="ticker-item">📋 <span>10 Franchises</span> competing for the finest players</span>
+      <span class="ticker-item">💰 Starting purse: <span>₹120 Crore</span> per franchise</span>
+      <span class="ticker-item">⚡ Marquee players up first — don't miss your chance!</span>
+      <span class="ticker-item">🌍 Overseas player limit: <span>8 per squad</span></span>
+    `;
+  }
+
   // Brief delay for DOM to render before starting timers
   setTimeout(() => {
     initAuction(gameState.myTeam.id);
-  }, 150);
+  }, 200);
 }
 
 // ─── 10. Exit Auction ─────────────────────────────────────────────────────────

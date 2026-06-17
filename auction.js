@@ -1,8 +1,179 @@
 // ============================================================
-// auction.js — Live Auction Engine (v2)
+// auction.js — AuctionVerse 3.0 — Live Auction Engine
 // Handles bidding, countdown timer, AI buying, RTM
-// Works with the new 200+ player database
+// Premium: Sound Design, Confetti, Cinematic Animations
 // ============================================================
+
+// ─── 🎵 Web Audio Sound Engine ───────────────────────────────────────────────
+let _audioCtx = null;
+function getAudioCtx() {
+  if (!_audioCtx) {
+    try { _audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  }
+  return _audioCtx;
+}
+
+function playTone(frequency, type, duration, volume = 0.3, delay = 0) {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  try {
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(frequency, ctx.currentTime + delay);
+    gain.gain.setValueAtTime(0, ctx.currentTime + delay);
+    gain.gain.linearRampToValueAtTime(volume, ctx.currentTime + delay + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
+    osc.start(ctx.currentTime + delay);
+    osc.stop(ctx.currentTime + delay + duration);
+  } catch(e) {}
+}
+
+function playGavelStrike() {
+  // Sharp percussive crack
+  playTone(180, 'sawtooth', 0.15, 0.4);
+  playTone(90,  'sine',     0.3,  0.25, 0.05);
+}
+
+function playSoldFanfare() {
+  // Triumphant ascending chord
+  const notes = [523, 659, 784, 1047];
+  notes.forEach((f, i) => playTone(f, 'sine', 0.5, 0.25, i * 0.1));
+  setTimeout(() => playTone(1047, 'sine', 0.8, 0.3), 450);
+}
+
+function playUnsoldTone() {
+  playTone(220, 'sine', 0.4, 0.25);
+  playTone(180, 'sine', 0.5, 0.2, 0.2);
+}
+
+function playBidBlip() {
+  playTone(880, 'sine', 0.12, 0.15);
+}
+
+function playUrgentTick() {
+  playTone(440, 'square', 0.08, 0.1);
+}
+
+function unlockAudio() {
+  const ctx = getAudioCtx();
+  if (ctx && ctx.state === 'suspended') ctx.resume();
+}
+document.addEventListener('click', unlockAudio, { once: true });
+
+// ─── 🎉 Confetti Particle System ─────────────────────────────────────────────
+const CONFETTI_COLORS = [
+  '#D4AF37','#FFD700','#FF6B35','#1a6fff',
+  '#00c66b','#ff3d5a','#8b5cf6','#f59e0b','#ffffff'
+];
+
+function launchConfetti(teamColor = null) {
+  const canvas = document.getElementById('confetti-canvas');
+  if (!canvas) return;
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const ctx = canvas.getContext('2d');
+  const pieces = [];
+  const colors = teamColor
+    ? [teamColor, '#D4AF37', '#ffffff', teamColor]
+    : CONFETTI_COLORS;
+
+  for (let i = 0; i < 160; i++) {
+    pieces.push({
+      x:     Math.random() * canvas.width,
+      y:     -20 - Math.random() * 200,
+      w:     6 + Math.random() * 10,
+      h:     3 + Math.random() * 6,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      rot:   Math.random() * 360,
+      vx:    -3 + Math.random() * 6,
+      vy:    3 + Math.random() * 5,
+      vr:    -4 + Math.random() * 8,
+      alpha: 1
+    });
+  }
+
+  let frame = 0;
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let alive = false;
+    pieces.forEach(p => {
+      if (p.alpha <= 0) return;
+      p.x  += p.vx;
+      p.y  += p.vy;
+      p.rot += p.vr;
+      p.vy  += 0.12; // gravity
+      if (p.y > canvas.height + 20) { p.alpha = 0; return; }
+      if (frame > 80) p.alpha -= 0.012;
+      alive = true;
+
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, p.alpha);
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot * Math.PI / 180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+      ctx.restore();
+    });
+    frame++;
+    if (alive) requestAnimationFrame(draw);
+    else ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  draw();
+}
+
+// ─── 🏆 SOLD Celebration ─────────────────────────────────────────────────────
+function showSoldCelebration(playerName, price, teamName, teamColor) {
+  const overlay  = document.getElementById('sold-celebration');
+  const wordEl   = document.getElementById('sold-word-text');
+  const nameEl   = document.getElementById('sold-player-name-text');
+  const priceEl  = document.getElementById('sold-price-text');
+  const teamEl   = document.getElementById('sold-team-text');
+  if (!overlay) return;
+
+  if (wordEl)  wordEl.textContent  = 'SOLD!';
+  if (nameEl)  nameEl.textContent  = playerName;
+  if (priceEl) priceEl.textContent = `₹${formatCr(price)}`;
+  if (teamEl)  teamEl.textContent  = `→ ${teamName}`;
+
+  overlay.classList.add('active');
+  launchConfetti(teamColor);
+  playSoldFanfare();
+
+  setTimeout(() => overlay.classList.remove('active'), 2400);
+}
+
+// ─── 🔨 Hammer Animation ────────────────────────────────────────────────────
+function triggerHammerAnimation() {
+  const hammer = document.getElementById('hammer-icon');
+  if (!hammer) return;
+  hammer.classList.remove('striking');
+  void hammer.offsetWidth; // reflow
+  hammer.classList.add('striking');
+  setTimeout(() => hammer.classList.remove('striking'), 600);
+}
+
+// ─── ⚡ Bid Amount Flash ──────────────────────────────────────────────────────
+function flashBidAmount() {
+  const el = document.getElementById('current-bid-amt');
+  if (!el) return;
+  el.classList.remove('bid-updated');
+  void el.offsetWidth;
+  el.classList.add('bid-updated');
+  setTimeout(() => el.classList.remove('bid-updated'), 350);
+}
+
+// ─── 🎬 Player Entry Animation ───────────────────────────────────────────────
+function triggerPlayerEntry() {
+  const spotlight = document.getElementById('player-spotlight');
+  if (!spotlight) return;
+  spotlight.classList.remove('player-entering');
+  void spotlight.offsetWidth;
+  spotlight.classList.add('player-entering');
+  setTimeout(() => spotlight.classList.remove('player-entering'), 700);
+}
 
 // ─── Global Auction State ────────────────────────────────────────────────────
 let auctionPool    = [];     // shuffled player array for this auction
@@ -138,12 +309,13 @@ function actuallyLoadPlayer(player) {
   renderPlayerSpotlight(currentPlayer);
   updateBidUI();
   updateTeamsStatusRow();
+  triggerPlayerEntry();
 
   // Reset log for this player
   const logEl = document.getElementById("bid-log");
   if (logEl) {
     logEl.innerHTML = `<div class="bid-log-header">
-      Base price: ₹${formatCr(currentPlayer.basePrice)}
+      🏏 ${currentPlayer.name} — Base ₹${formatCr(currentPlayer.basePrice)}
     </div>`;
   }
 
@@ -224,6 +396,7 @@ function updateCountdownUI() {
   el.textContent = countdown;
   const isUrgent = (currentPlayer && currentPlayer.isAccelerated) ? countdown <= 2 : countdown <= 3;
   el.classList.toggle("urgent", isUrgent);
+  if (isUrgent && countdown > 0) playUrgentTick();
 }
 
 function resetCountdown(extra = 0) {
@@ -263,6 +436,9 @@ function runAIBidRound() {
       updateTeamsStatusRow();
       addBidLog(team.abbr, currentBid, false);
       resetCountdown();
+      triggerHammerAnimation();
+      flashBidAmount();
+      playGavelStrike();
 
       // Schedule next AI bid
       scheduleAIBid();
@@ -301,6 +477,9 @@ function playerBid() {
   updateTeamsStatusRow();
   addBidLog("YOU", currentBid, true);
   resetCountdown();
+  triggerHammerAnimation();
+  flashBidAmount();
+  playBidBlip();
 
   // AI counter-bids after player bids
   scheduleAIBid();
@@ -353,14 +532,15 @@ function resolveCurrentPlayer() {
     // UNSOLD
     unsoldCount++;
     showBanner("unsold", `${currentPlayer.name} goes UNSOLD`);
+    playUnsoldTone();
     setTimeout(() => {
       auctionIndex++;
       auctionRunning = true;
       loadNextPlayer();
-    }, 2000);
+    }, 2200);
 
   } else if (currentBidder === myTeamId) {
-    // Player wins the bid
+    // Player wins the bid — YOU bought them!
     const myTeam = gameState.allTeams.find(t => t.id === myTeamId);
     if (myTeam) {
       const bought = { ...currentPlayer, soldPrice: currentBid, currentTeam: myTeamId };
@@ -370,6 +550,15 @@ function resolveCurrentPlayer() {
 
     soldCount++;
     showBanner("sold", `🔨 ${currentPlayer.name} → YOU  ₹${formatCr(currentBid)}`);
+    triggerHammerAnimation();
+
+    // Full celebration for user wins
+    showSoldCelebration(
+      currentPlayer.name,
+      currentBid,
+      myTeam ? `${myTeam.emoji} ${myTeam.name}` : 'Your Team',
+      myTeam ? myTeam.primaryColor : '#D4AF37'
+    );
 
     // Notify game.js controller
     if (typeof onPlayerSoldToMe === "function") {
@@ -380,7 +569,7 @@ function resolveCurrentPlayer() {
       auctionIndex++;
       auctionRunning = true;
       loadNextPlayer();
-    }, 2200);
+    }, 2600);
 
   } else {
     // AI team wins
@@ -394,12 +583,14 @@ function resolveCurrentPlayer() {
     soldCount++;
     const tName = aiTeam ? aiTeam.abbr : currentBidder.toUpperCase();
     showBanner("sold", `🔨 ${currentPlayer.name} → ${tName}  ₹${formatCr(currentBid)}`);
+    triggerHammerAnimation();
+    playGavelStrike();
 
     setTimeout(() => {
       auctionIndex++;
       auctionRunning = true;
       loadNextPlayer();
-    }, 2200);
+    }, 2400);
   }
 }
 
