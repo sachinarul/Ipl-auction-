@@ -19,6 +19,10 @@
   
   --av-text: #e8e8f0;
   --av-muted: #6b6b8a;
+  
+  --gold: #D4AF37;
+  --gold-light: #f5cc45;
+  --gold-dark: #a8882c;
 }
 
 @theme {
@@ -44,6 +48,17 @@ body {
   overflow-x: hidden;
 }
 
+/* Custom Fonts */
+.font-bebas {
+  font-family: var(--font-bebas), 'Bebas Neue', sans-serif;
+}
+.font-barlow {
+  font-family: var(--font-barlow), 'Barlow Condensed', sans-serif;
+}
+.font-rajdhani {
+  font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
+}
+
 /* Custom Utilities for Premium Aesthetics */
 .glass-panel {
   background: var(--av-glass);
@@ -59,35 +74,35 @@ body {
 }
 
 .neon-glow-gold {
-  box-shadow: 0 0 15px rgba(245, 197, 24, 0.15);
-  text-shadow: 0 0 8px rgba(245, 197, 24, 0.3);
+  box-shadow: 0 0 25px rgba(245, 197, 24, 0.25);
+  text-shadow: 0 0 10px rgba(245, 197, 24, 0.45);
 }
 
 .neon-glow-cyan {
-  box-shadow: 0 0 15px rgba(0, 212, 255, 0.15);
-  text-shadow: 0 0 8px rgba(0, 212, 255, 0.3);
+  box-shadow: 0 0 25px rgba(0, 212, 255, 0.25);
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.45);
 }
 
 .neon-glow-green {
-  box-shadow: 0 0 15px rgba(0, 255, 136, 0.15);
-  text-shadow: 0 0 8px rgba(0, 255, 136, 0.3);
+  box-shadow: 0 0 25px rgba(0, 255, 136, 0.25);
+  text-shadow: 0 0 10px rgba(0, 255, 136, 0.45);
 }
 
 .neon-glow-red {
-  box-shadow: 0 0 15px rgba(255, 51, 102, 0.15);
-  text-shadow: 0 0 8px rgba(255, 51, 102, 0.3);
+  box-shadow: 0 0 25px rgba(255, 51, 102, 0.25);
+  text-shadow: 0 0 10px rgba(255, 51, 102, 0.45);
 }
 
 .neon-glow-purple {
-  box-shadow: 0 0 15px rgba(180, 79, 255, 0.15);
-  text-shadow: 0 0 8px rgba(180, 79, 255, 0.3);
+  box-shadow: 0 0 25px rgba(180, 79, 255, 0.25);
+  text-shadow: 0 0 10px rgba(180, 79, 255, 0.45);
 }
 
 /* Premium Background Grid & Floating Elements */
 .bg-grid-pattern {
   background-image: 
-    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+    linear-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.012) 1px, transparent 1px);
   background-size: 50px 50px;
 }
 
@@ -119,4 +134,114 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+/* ─── Keyframe Animations for Premium Arena ─── */
+@keyframes arenaBeam {
+  0%, 100% { opacity: 0.03; transform: skewX(-8deg) scaleY(1); }
+  50%       { opacity: 0.12; transform: skewX(8deg) scaleY(1.15); }
+}
+
+@keyframes liveBlink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+
+@keyframes tickerScroll {
+  0%   { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+@keyframes hammerStrike {
+  0%   { transform: rotate(0deg); }
+  30%  { transform: rotate(-45deg) scale(1.1); }
+  60%  { transform: rotate(15deg); }
+  80%  { transform: rotate(-8deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes bidFlash {
+  0%   { background: rgba(245, 197, 24, 0); }
+  25%  { background: rgba(245, 197, 24, 0.25); }
+  100% { background: rgba(245, 197, 24, 0); }
+}
+
+@keyframes soldFlash {
+  0%   { opacity: 0; transform: scale(0.75); }
+  45%  { opacity: 1; transform: scale(1.06); }
+  75%  { transform: scale(0.98); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes stampCrack {
+  0% { transform: scale(3) rotate(-15deg); opacity: 0; }
+  80% { transform: scale(0.9) rotate(-10deg); opacity: 1; }
+  100% { transform: scale(1) rotate(-12deg); opacity: 1; }
+}
+
+/* ─── Premium stage background layer ─── */
+.arena-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.arena-beam {
+  position: absolute;
+  top: 0;
+  width: 80px;
+  height: 100%;
+  background: linear-gradient(180deg, rgba(214, 175, 55, 0.08) 0%, transparent 75%);
+  transform-origin: top center;
+  pointer-events: none;
+}
+.arena-beam:nth-child(1) { left: 10%; animation: arenaBeam 8s ease-in-out infinite; }
+.arena-beam:nth-child(2) { left: 35%; animation: arenaBeam 11s 1s ease-in-out infinite; width: 50px; background: linear-gradient(180deg, rgba(0, 212, 255, 0.06) 0%, transparent 75%); }
+.arena-beam:nth-child(3) { right: 12%; animation: arenaBeam 9s 3s ease-in-out infinite; }
+.arena-beam:nth-child(4) { right: 38%; animation: arenaBeam 12s 5s ease-in-out infinite; width: 45px; }
+
+.arena-crowd {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(180deg, transparent 0%, rgba(4, 4, 12, 0.95) 100%);
+  pointer-events: none;
+}
+
+/* ─── Broadcast News Ticker ─── */
+.broadcast-ticker-wrap {
+  flex: 1;
+  overflow: hidden;
+  margin: 0 16px;
+  mask-image: linear-gradient(90deg, transparent 0%, black 6%, black 94%, transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 6%, black 94%, transparent 100%);
+}
+.broadcast-ticker {
+  white-space: nowrap;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  display: inline-block;
+  animation: tickerScroll 40s linear infinite;
+}
+.ticker-item {
+  margin-right: 64px;
+}
+.ticker-item span {
+  color: var(--av-neon-gold);
+  font-weight: 700;
+}
+
+/* ─── Auctioneer animations ─── */
+.gavel-striking {
+  animation: hammerStrike 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* ─── Sold & Unsold Overlays ─── */
+.stamp-unsold {
+  animation: stampCrack 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  text-shadow: 0 0 15px rgba(255, 51, 102, 0.4);
 }
