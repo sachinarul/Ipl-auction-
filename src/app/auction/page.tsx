@@ -1157,66 +1157,101 @@ export default function AuctionArena() {
     </div>
   );
 
-  const renderClassicPurseTicker = () => (
-    <div className="border-b border-white/8 relative" style={{ background: 'rgba(4,4,12,0.85)', backdropFilter: 'blur(20px)' }}>
-      {/* Top scan line */}
-      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-neon-gold/30 to-transparent" />
-      <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center gap-3">
-        {/* LIVE badge */}
-        <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-neon-red/40 font-black text-[9px] uppercase tracking-widest" style={{ background: 'rgba(255,51,102,0.1)', color: '#ff3366' }}>
-          <span className="h-1.5 w-1.5 rounded-full bg-neon-red" style={{ animation: 'livePulse 1.2s ease-in-out infinite', display: 'inline-block' }} />
-          LIVE
-        </div>
+  const renderClassicPurseTicker = () => {
+    const getTeamOwner = (id: string) => {
+      const owners: Record<string, string> = {
+        mi: 'Ambani',
+        csk: 'Srinivasan',
+        rcb: 'USL Group',
+        kkr: 'SRK & Juhi',
+        dc: 'GMR & JSW',
+        srh: 'Karan Maran',
+        rr: 'M. Badale',
+        pbks: 'P. Zinta',
+        gt: 'CVC Capital',
+        lsg: 'S. Goenka'
+      };
+      return owners[id] || 'Franchise Owner';
+    };
 
-        {/* Teams ticker */}
-        <div className="flex-1 overflow-x-auto whitespace-nowrap scrollbar-none flex space-x-2">
-          {teams.map((team) => {
-            const isHighest = currentBidderId === team.id;
-            const isUser = team.id === userTeamId;
-            const pursePercent = Math.max(0, Math.min(100, (team.purse / 120) * 100));
-            return (
-              <div
-                key={team.id}
-                style={{
-                  borderColor: isHighest ? `${team.primaryColor}80` : isUser ? 'rgba(245,197,24,0.25)' : 'rgba(255,255,255,0.07)',
-                  background: isHighest
-                    ? `linear-gradient(135deg, ${team.primaryColor}18, ${team.primaryColor}08)`
-                    : isUser ? 'rgba(245,197,24,0.05)' : 'rgba(255,255,255,0.02)',
-                  boxShadow: isHighest ? `0 0 14px ${team.primaryColor}35` : 'none',
-                  transform: isHighest ? 'scale(1.03) translateY(-1px)' : 'scale(1)',
-                }}
-                className="team-chip flex items-center space-x-2 px-3 py-1.5 rounded-xl border transition-all duration-300"
-              >
-                <span className="text-lg shrink-0 leading-none">{team.emoji}</span>
-                <div className="shrink-0">
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] uppercase font-black tracking-wider font-barlow" style={{ color: team.primaryColor }}>{team.abbr}</span>
-                    {isUser && <span className="text-[8px] px-1.5 py-0.5 rounded font-black" style={{ background: '#f5c518', color: '#03010a' }}>YOU</span>}
-                    {isHighest && <span className="text-[8px] px-1.5 py-0.5 rounded font-black" style={{ background: 'rgba(0,255,136,0.2)', color: '#00ff88', border: '1px solid rgba(0,255,136,0.3)' }}>BID ⚡</span>}
+    return (
+      <div className="border-b border-white/8 relative" style={{ background: 'rgba(4,4,12,0.9)', backdropFilter: 'blur(24px)' }}>
+        {/* Top scan line */}
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-neon-gold/20 to-transparent" />
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+          {/* LIVE badge */}
+          <div className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-neon-red/30 font-black text-[9px] uppercase tracking-widest bg-neon-red/5 text-neon-red">
+            <span className="h-1.5 w-1.5 rounded-full bg-neon-red" style={{ animation: 'livePulse 1.2s ease-in-out infinite', display: 'inline-block' }} />
+            LIVE
+          </div>
+
+          {/* Teams ticker */}
+          <div className="flex-1 overflow-x-auto whitespace-nowrap scrollbar-none flex space-x-3 py-1">
+            {teams.map((team) => {
+              const isHighest = currentBidderId === team.id;
+              const isUser = team.id === userTeamId;
+              const owner = getTeamOwner(team.id);
+              return (
+                <div
+                  key={team.id}
+                  style={{
+                    borderColor: isHighest ? `${team.primaryColor}80` : 'rgba(255,255,255,0.06)',
+                    background: isHighest
+                      ? `linear-gradient(135deg, ${team.primaryColor}20, ${team.primaryColor}05)`
+                      : 'rgba(255,255,255,0.02)',
+                    boxShadow: isHighest ? `0 0 20px ${team.primaryColor}25, inset 0 0 10px ${team.primaryColor}10` : 'none',
+                  }}
+                  className={`flex items-center space-x-3 px-4 py-2 rounded-2xl border transition-all duration-300 ${
+                    isHighest ? 'scale-[1.02] ring-1 ring-white/10 z-10' : 'opacity-70 hover:opacity-100'
+                  }`}
+                >
+                  {/* Team Logo/Emoji */}
+                  <div 
+                    className="h-8 w-8 rounded-lg flex items-center justify-center text-lg shrink-0 border"
+                    style={{
+                      backgroundColor: `${team.primaryColor}15`,
+                      borderColor: isHighest ? `${team.primaryColor}40` : 'rgba(255,255,255,0.08)'
+                    }}
+                  >
+                    {team.emoji}
                   </div>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="text-[9px] font-bold" style={{ color: '#00ff88' }}>₹{team.purse.toFixed(1)}Cr</span>
-                    <span className="text-[8px] text-av-muted">·</span>
-                    <span className="text-[9px] text-av-muted font-semibold">{team.squad.length}/25</span>
+                  
+                  <div className="shrink-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] uppercase font-black tracking-wider font-barlow" style={{ color: team.primaryColor }}>{team.abbr}</span>
+                      {isUser && <span className="text-[8px] bg-neon-gold text-midnight font-black px-1.5 py-0.5 rounded leading-none">YOU</span>}
+                      {isHighest && (
+                        <span className="text-[8px] font-black uppercase text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-1.5 py-0.5 rounded leading-none flex items-center gap-0.5 animate-pulse">
+                          LEAD ⚡
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[8px] text-av-muted font-bold truncate max-w-[80px] mt-0.5 uppercase tracking-wide">
+                      {owner}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] font-extrabold text-neon-green">₹{team.purse.toFixed(1)}Cr</span>
+                      <span className="text-[8px] text-av-muted">·</span>
+                      <span className="text-[10px] text-slate-300 font-semibold">{team.squad.length}/25</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
 
-        {/* Stats Button */}
-        <button
-          onClick={() => setIsStatsOpen(true)}
-          className="shrink-0 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all duration-200 border"
-          style={{ background: 'rgba(245,197,24,0.08)', borderColor: 'rgba(245,197,24,0.25)', color: '#f5c518' }}
-        >
-          <Trophy className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Stats Board</span>
-        </button>
+          {/* Stats Board Button */}
+          <button
+            onClick={() => setIsStatsOpen(true)}
+            className="shrink-0 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all duration-200 border bg-neon-gold/5 border-neon-gold/20 text-neon-gold hover:bg-neon-gold/15 cursor-pointer"
+          >
+            <Trophy className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Stats Board</span>
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderCameraSwitcher = () => (
     <div className="flex flex-wrap items-center gap-1 bg-void/65 border border-white/5 p-1 rounded-xl backdrop-blur-md">
@@ -1690,424 +1725,363 @@ export default function AuctionArena() {
       : 'var(--av-neon-gold)';
 
     return (
-    <div
-      className="lg:col-span-8 flex flex-col justify-between rounded-3xl relative overflow-hidden transition-all duration-500"
-      style={{
-        background: 'linear-gradient(135deg, rgba(8,7,20,0.97) 0%, rgba(4,4,12,0.99) 100%)',
-        border: `1px solid ${activeBidderColor ? `${activeBidderColor}60` : 'rgba(255,255,255,0.08)'}`,
-        boxShadow: activeBidderColor
-          ? `0 0 40px ${activeBidderColor}18, 0 0 80px ${activeBidderColor}08, inset 0 0 30px ${activeBidderColor}06`
-          : '0 12px 40px rgba(0,0,0,0.7)',
-      }}
-    >
-      {/* Stadium background ambient */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="arena-beam" />
-        <div className="arena-beam" />
-        <div className="arena-beam" />
-        <div className="arena-beam" />
-      </div>
-      {/* Floor sweep gradient */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none"
-        style={{ background: activeBidderColor ? `linear-gradient(180deg, transparent, ${activeBidderColor}08)` : 'none' }} />
+      <div
+        className="lg:col-span-8 flex flex-col justify-between rounded-3xl relative overflow-hidden transition-all duration-500 border shadow-2xl"
+        style={{
+          background: 'linear-gradient(135deg, rgba(8,7,20,0.98) 0%, rgba(4,4,12,0.99) 100%)',
+          borderColor: activeBidderColor ? `${activeBidderColor}45` : 'rgba(245, 197, 24, 0.15)',
+          boxShadow: activeBidderColor
+            ? `0 12px 40px rgba(0,0,0,0.8), 0 0 30px ${activeBidderColor}10, inset 0 0 20px ${activeBidderColor}05`
+            : '0 12px 40px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05)',
+        }}
+      >
+        {/* Soft Spotlight ambient beams */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="arena-beam" />
+          <div className="arena-beam" />
+        </div>
 
-      <AnimatePresence mode="wait">
-        {currentPlayer ? (
-          <motion.div
-            key={currentPlayer.id}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.3 }}
-            className="flex flex-col h-full justify-between p-6 relative z-10"
-          >
-            {/* ── Header Row ── */}
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex-1 min-w-0">
-                {/* Country + Age pill */}
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border" style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.10)' }}>
-                    <span className="text-base leading-none">{currentPlayer.flag}</span>
-                    <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest font-barlow">{currentPlayer.country}</span>
-                    <span className="text-[9px] text-av-muted font-bold">· {currentPlayer.age}y</span>
-                  </div>
-                  {/* Capped status */}
-                  {currentPlayer.capped ? (
-                    <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full" style={{ background: 'rgba(245,197,24,0.10)', border: '1px solid rgba(245,197,24,0.25)', color: '#f5c518' }}>
-                      🇮🇳 CAPPED
-                    </span>
-                  ) : (
-                    <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full" style={{ background: 'rgba(107,107,138,0.15)', border: '1px solid rgba(107,107,138,0.2)', color: '#6b6b8a' }}>UNCAPPED</span>
-                  )}
-                </div>
-
-                {/* Player Name */}
-                <h2 className="text-4xl sm:text-5xl font-black tracking-wide text-white uppercase font-barlow leading-none" style={{ textShadow: '0 0 30px rgba(255,255,255,0.08)' }}>
-                  {currentPlayer.name}
-                </h2>
-
-                {/* Category badge */}
-                {currentPlayer.category && (
-                  <span className="text-[9px] uppercase font-black tracking-widest mt-2.5 block w-fit px-3 py-1 rounded-full"
-                    style={{ background: 'rgba(245,197,24,0.08)', border: '1px solid rgba(245,197,24,0.2)', color: 'rgba(245,197,24,0.9)' }}>
-                    {currentPlayer.category.replace(/_/g, ' ')}
-                  </span>
-                )}
-              </div>
-
-              {/* Role Badge */}
-              <div className="flex flex-col items-end gap-2 ml-4">
-                <span className={`text-sm font-black px-4 py-2 rounded-xl uppercase tracking-widest font-barlow ${
-                  currentPlayer.role === 'BAT' ? 'bg-neon-cyan/12 text-neon-cyan border border-neon-cyan/30' :
-                  currentPlayer.role === 'BOWL' ? 'bg-neon-red/12 text-neon-red border border-neon-red/30' :
-                  currentPlayer.role === 'WK' ? 'bg-neon-gold/12 text-neon-gold border border-neon-gold/30' :
-                  'bg-neon-purple/12 text-neon-purple border border-neon-purple/30'
-                }`}>{currentPlayer.role}</span>
-              </div>
-            </div>
-
-            {/* ── Desktop: OVR Gauge + Premium Price LED ── */}
-            <div className="hidden lg:grid grid-cols-3 gap-5 my-5">
-              {/* OVR Ring */}
-              <div className="flex flex-col items-center justify-center">
-                <div className="relative flex items-center justify-center w-32 h-32">
-                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 128 128">
-                    <circle cx="64" cy="64" r="56" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="10" />
-                    <circle
-                      cx="64" cy="64" r="56"
-                      fill="none"
-                      strokeWidth="10"
-                      strokeLinecap="round"
-                      strokeDasharray={2 * Math.PI * 56}
-                      strokeDashoffset={2 * Math.PI * 56 * (1 - currentPlayer.overall / 100)}
-                      style={{ stroke: ovrColor, filter: `drop-shadow(0 0 8px ${ovrColor})`, transition: 'stroke-dashoffset 1s ease' }}
-                    />
-                  </svg>
-                  <div className="absolute flex flex-col items-center">
-                    <span className="text-4xl font-black font-bebas leading-none" style={{ color: ovrColor, textShadow: `0 0 15px ${ovrColor}` }}>{currentPlayer.overall}</span>
-                    <span className="text-[8px] text-av-muted uppercase tracking-widest font-bold mt-0.5">OVR</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* LED Price Panel */}
-              <div className="col-span-2 led-panel rounded-2xl px-5 py-4 flex flex-col justify-between">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[9px] uppercase font-black tracking-widest" style={{ color: 'rgba(107,107,138,0.9)' }}>
-                    {currentBidderId ? '⚡ CURRENT BID' : '📌 BASE PRICE'}
-                  </span>
-                  {/* Countdown Ring inline */}
-                  {(phase === 'BIDDING' || phase === 'RESOLVING') && (
-                    <div className="relative w-8 h-8">
-                      <svg className="w-full h-full -rotate-90" viewBox="0 0 32 32">
-                        <circle cx="16" cy="16" r="13" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="2.5" />
-                        <circle cx="16" cy="16" r="13" fill="none" strokeWidth="2.5" strokeLinecap="round"
-                          strokeDasharray={2 * Math.PI * 13}
-                          strokeDashoffset={2 * Math.PI * 13 * (1 - Math.max(0, countdown) / timerDuration)}
-                          className={countdown <= 3 ? 'timer-red' : countdown <= 5 ? 'timer-orange' : countdown <= 7 ? 'timer-yellow' : 'timer-green'}
-                          style={{ transition: 'stroke-dashoffset 0.25s linear' }}
-                        />
-                      </svg>
-                      <span className={`absolute inset-0 flex items-center justify-center text-[9px] font-black font-bebas ${countdown <= 3 ? 'text-neon-red' : 'text-white'}`}>
-                        {phase === 'RESOLVING' ? '!' : countdown}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <div className="text-3xl sm:text-4xl font-black font-bebas tracking-wider leading-none" style={{ color: '#f5c518', textShadow: '0 0 20px rgba(245,197,24,0.45)' }}>
-                  {currentBidderId ? formatCr(currentBid) : `₹${currentPlayer.basePrice.toFixed(2)} Cr`}
-                </div>
-                {/* Leader row */}
-                <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-white/8">
-                  <span className="text-[9px] text-av-muted uppercase font-black tracking-widest">Leader:</span>
-                  {activeBidder ? (
-                    <div className="flex items-center gap-2 px-2.5 py-1 rounded-full border" style={{ background: `${activeBidder.primaryColor}12`, borderColor: `${activeBidder.primaryColor}35` }}>
-                      <span className="text-base leading-none">{activeBidder.emoji}</span>
-                      <span className="text-xs font-black uppercase font-barlow" style={{ color: activeBidder.primaryColor }}>{activeBidder.abbr}</span>
-                      {currentBidderId === userTeamId && <span className="text-[8px] px-1.5 py-0.5 rounded font-black" style={{ background: '#f5c518', color: '#03010a' }}>YOU</span>}
-                    </div>
-                  ) : (
-                    <span className="text-[10px] text-av-muted italic">No bids yet</span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* ── Mobile: Premium Bidding Panel ── */}
-            <div className="flex lg:hidden flex-col items-stretch w-full gap-0 my-4 rounded-2xl relative overflow-hidden" style={{ background: 'rgba(4,4,12,0.95)', border: `1px solid ${activeBidderColor ? `${activeBidderColor}40` : 'rgba(255,255,255,0.08)'}` }}>
-              {/* Header: Live + Timer */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-white/8">
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full" style={{ background: paused ? '#ff3366' : '#00ff88', boxShadow: paused ? '0 0 6px #ff3366' : '0 0 6px #00ff88', animation: 'livePulse 1.2s ease-in-out infinite', display: 'inline-block' }} />
-                  <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: paused ? '#ff3366' : '#00ff88' }}>{paused ? 'PAUSED' : 'LIVE AUCTION'}</span>
-                </div>
-                {/* Timer ring */}
-                <div className="relative w-9 h-9">
-                  <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                    <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="3" />
-                    <circle cx="18" cy="18" r="15" fill="none" strokeWidth="3" strokeLinecap="round"
-                      strokeDasharray={2 * Math.PI * 15}
-                      strokeDashoffset={2 * Math.PI * 15 * (1 - Math.max(0, countdown) / timerDuration)}
-                      className={countdown <= 3 ? 'timer-red' : countdown <= 5 ? 'timer-orange' : countdown <= 7 ? 'timer-yellow' : 'timer-green'}
-                      style={{ transition: 'stroke-dashoffset 0.25s linear' }}
-                    />
-                  </svg>
-                  <span className={`absolute inset-0 flex items-center justify-center text-[10px] font-black font-bebas leading-none ${countdown <= 3 ? 'text-neon-red' : 'text-white'}`}>
-                    {phase === 'RESOLVING' ? '!' : countdown}
-                  </span>
-                </div>
-              </div>
-
-              {/* Price LED Panel */}
-              <div className="px-4 py-4 text-center" style={{ background: 'rgba(0,0,0,0.4)' }}>
-                <span className="text-[9px] uppercase font-black tracking-widest text-av-muted block mb-1">{currentBidderId ? '⚡ CURRENT BID' : '📌 BASE PRICE'}</span>
-                <div className="text-5xl font-black font-bebas tracking-wider leading-tight" style={{ color: '#f5c518', textShadow: '0 0 25px rgba(245,197,24,0.55)', letterSpacing: '0.05em' }}>
-                  {currentBidderId ? formatCr(currentBid) : `₹${currentPlayer.basePrice.toFixed(2)} Cr`}
-                </div>
-                {/* Leader */}
-                <div className="flex items-center justify-center gap-2 mt-3">
-                  <span className="text-[9px] text-av-muted uppercase font-black tracking-widest">Leader:</span>
-                  {activeBidder ? (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: `${activeBidder.primaryColor}15`, border: `1px solid ${activeBidder.primaryColor}40` }}>
-                      <span className="text-lg leading-none">{activeBidder.emoji}</span>
-                      <span className="text-xs font-black uppercase font-barlow" style={{ color: activeBidder.primaryColor }}>{activeBidder.name}</span>
-                      {currentBidderId === userTeamId && <span className="text-[8px] px-1.5 py-0.5 rounded font-black" style={{ background: '#f5c518', color: '#03010a' }}>YOU</span>}
-                    </div>
-                  ) : (
-                    <span className="text-[10px] text-av-muted italic">No bids yet</span>
-                  )}
-                </div>
-              </div>
-
-              {/* BID Button */}
-              <div className="px-4 pb-4">
-                {(phase === 'BIDDING' || phase === 'RESOLVING') && !paused && userTeamId ? (
-                  (() => {
-                    const uTeam = teams.find((t) => t.id === userTeamId);
-                    const nextBidAmount = currentBidderId ? getNextBid(currentBid) : currentBid;
-                    const isHighestBidder = currentBidderId === userTeamId;
-                    const hasPurse = uTeam ? uTeam.purse >= nextBidAmount : false;
-                    const isRosterFull = uTeam ? uTeam.squad.length >= 25 : false;
-                    const isOverseasQuotaFull = uTeam && currentPlayer.overseas ? uTeam.squad.filter(p => p.overseas).length >= 8 : false;
-                    let btnText = `BID ${formatCrShort(nextBidAmount)}`;
-                    let isDisabled = false;
-                    if (isHighestBidder) { btnText = '✅ YOU LEAD'; isDisabled = true; }
-                    else if (isRosterFull) { btnText = 'SQUAD FULL'; isDisabled = true; }
-                    else if (isOverseasQuotaFull) { btnText = 'OVERSEAS LIMIT'; isDisabled = true; }
-                    else if (!hasPurse) { btnText = 'NO BUDGET'; isDisabled = true; }
-                    return (
-                      <button onClick={() => placeBid()} disabled={isDisabled}
-                        className={`w-full py-4 rounded-xl text-sm font-black tracking-widest uppercase ${isDisabled ? '' : 'bid-button cursor-pointer'}`}
-                        style={isDisabled ? { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(107,107,138,0.8)', cursor: 'not-allowed' } : {}}
-                      >
-                        {btnText}
-                      </button>
-                    );
-                  })()
-                ) : (
-                  <div className="py-3 rounded-xl text-center text-xs text-av-muted font-bold" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                    {paused ? '⏸ Paused' : 'Bidding Closed'}
-                  </div>
-                )}
-              </div>
-            </div>
-
-          </motion.div>
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full text-center space-y-4 py-16">
-            <div className="h-16 w-16 rounded-full bg-glass flex items-center justify-center border border-border-custom">
-              <User className="h-8 w-8 text-av-muted" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold">Waiting for Admin to Start</h3>
-              <p className="text-xs text-av-muted max-w-xs mt-1">The live draft will begin as soon as the room owner clicks start.</p>
+        {/* Circular Countdown Timer in Top-Right Corner (Apple / F1 style) */}
+        {(phase === 'BIDDING' || phase === 'RESOLVING') && !paused && (
+          <div className="absolute top-5 right-5 z-20">
+            <div className="relative w-12 h-12 flex items-center justify-center rounded-full bg-void/70 border border-white/8 backdrop-blur-md">
+              <svg className="absolute w-full h-full -rotate-90" viewBox="0 0 40 40">
+                <circle cx="20" cy="20" r="17" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="3" />
+                <motion.circle
+                  cx="20" cy="20" r="17"
+                  fill="none"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 17}
+                  animate={{ strokeDashoffset: 2 * Math.PI * 17 * (1 - Math.max(0, countdown) / timerDuration) }}
+                  transition={{ duration: 0.25, ease: "linear" }}
+                  style={{
+                    stroke: countdown <= 2 ? '#ff3366' : countdown <= 5 ? '#ffb700' : '#00ff88',
+                    filter: `drop-shadow(0 0 4px ${countdown <= 2 ? '#ff3366' : countdown <= 5 ? '#ffb700' : '#00ff88'}40)`,
+                    transition: 'stroke 0.3s ease'
+                  }}
+                />
+              </svg>
+              <motion.span 
+                key={countdown === 1 ? 'pulse-1' : 'stable'}
+                animate={countdown === 1 ? { scale: [1, 1.15, 1] } : {}}
+                transition={{ duration: 0.4, ease: "easeInOut" }}
+                className={`text-sm font-black font-bebas leading-none ${
+                  countdown <= 2 ? 'text-neon-red' : 'text-white'
+                }`}
+              >
+                {phase === 'RESOLVING' ? '!' : countdown}
+              </motion.span>
             </div>
           </div>
         )}
-      </AnimatePresence>
 
-      {/* ── Overlays ──────────────────────────────────────────────────────── */}
-      <AnimatePresence>
-        {/* V3: Big warning countdown overlay */}
-        {phase === 'BIDDING' && countdown <= 3 && countdown > 0 && (
-          <motion.div
-            key={countdown}
-            initial={{ scale: 2.2, opacity: 0 }}
-            animate={{ scale: 1, opacity: 0.2 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.45, ease: "easeOut" }}
-            className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-10"
-          >
-            <span className="text-[14rem] font-black text-neon-red tracking-tight leading-none filter drop-shadow-[0_0_40px_rgba(255,51,102,0.4)]">
-              {countdown}
-            </span>
-          </motion.div>
-        )}
-
-        {phase === 'RESOLVING' && countdownText && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center text-center z-20 backdrop-blur-sm"
-          >
+        <AnimatePresence mode="wait">
+          {currentPlayer ? (
             <motion.div
-              animate={{ scale: [1, 1.08, 1], opacity: [0.9, 1, 0.9] }}
-              transition={{ repeat: Infinity, duration: 0.8 }}
-              className="text-5xl font-black text-neon-gold tracking-widest uppercase mb-2 neon-glow-gold"
+              key={currentPlayer.id}
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.35, ease: "easeInOut" }}
+              className="flex flex-col h-full justify-between p-6 md:p-8 relative z-10"
             >
-              {countdownText}
-            </motion.div>
-            {activeBidder && (
-              <p className="text-lg text-white">
-                Highest Bid:{' '}
-                <span className="font-extrabold text-neon-green">{formatCr(currentBid)}</span> by{' '}
-                <span style={{ color: activeBidder.primaryColor }} className="font-extrabold">
-                  {activeBidder.name} {activeBidder.emoji}
-                </span>
-              </p>
-            )}
-          </motion.div>
-        )}
-
-        {/* ── Premium SOLD Overlay ── */}
-        {phase === 'SOLD' && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 flex flex-col items-center justify-center text-center z-20 overflow-hidden"
-            style={{ background: activeBidder ? `linear-gradient(180deg, rgba(0,0,0,0.93) 0%, ${activeBidder.primaryColor}10 100%)` : 'rgba(0,0,0,0.92)', backdropFilter: 'blur(8px)' }}
-          >
-            {/* Team color flash */}
-            {activeBidder && (
-              <motion.div
-                initial={{ opacity: 0.5, scale: 0 }}
-                animate={{ opacity: 0, scale: 4 }}
-                transition={{ duration: 0.8 }}
-                className="absolute inset-0 rounded-full pointer-events-none"
-                style={{ background: `radial-gradient(circle, ${activeBidder.primaryColor}40 0%, transparent 70%)` }}
-              />
-            )}
-            {/* Confetti particles */}
-            <div className="absolute inset-0 pointer-events-none">
-              {[...Array(16)].map((_, i) => (
-                <motion.div key={i}
-                  className="absolute rounded-sm"
-                  style={{ backgroundColor: i % 3 === 0 ? (activeBidder?.primaryColor || '#FFD700') : i % 3 === 1 ? '#f5c518' : '#ffffff', width: `${4 + (i % 5) * 2}px`, height: `${3 + (i % 4)}px`, left: `${5 + i * 6}%`, top: '-10px' }}
-                  animate={{ y: ['0vh', '110vh'], rotate: [0, 360 + i * 40], opacity: [1, 0.8, 0] }}
-                  transition={{ duration: 1.8 + (i % 4) * 0.4, delay: i * 0.06 }}
-                />
-              ))}
-            </div>
-
-            {/* Gavel */}
-            <motion.div animate={{ rotate: [0, -40, 8, -15, 0] }} transition={{ duration: 0.55, times: [0, 0.25, 0.5, 0.75, 1] }} className="text-5xl mb-3">🔨</motion.div>
-
-            {/* SOLD stamp */}
-            <motion.div
-              initial={{ scale: 2.5, opacity: 0, rotate: -8 }}
-              animate={{ scale: 1, opacity: 1, rotate: -6 }}
-              transition={{ duration: 0.45, ease: [0.175, 0.885, 0.32, 1.275] }}
-              className="font-black font-barlow tracking-widest uppercase px-8 py-2 mb-5 rounded-lg"
-              style={{ fontSize: 'clamp(52px, 12vw, 96px)', color: '#00ff88', border: '4px solid #00ff88', textShadow: '0 0 30px rgba(0,255,136,0.8)', boxShadow: '0 0 40px rgba(0,255,136,0.25), inset 0 0 20px rgba(0,255,136,0.05)' }}
-            >SOLD!</motion.div>
-
-            {activeBidder && (
-              <>
-                <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3, duration: 0.4, ease: [0.175, 0.885, 0.32, 1.275] }}
-                  className="w-24 h-24 rounded-full flex items-center justify-center text-5xl mb-3"
-                  style={{ background: 'rgba(0,0,0,0.6)', border: `3px solid ${activeBidder.primaryColor}`, boxShadow: `0 0 30px ${activeBidder.primaryColor}60` }}
-                >{activeBidder.emoji}</motion.div>
-                <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="text-xl font-black text-white tracking-wide">{currentPlayer?.name}</motion.p>
-                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="text-sm text-av-muted mt-1">
-                  Signed to <span className="font-extrabold" style={{ color: activeBidder.primaryColor }}>{activeBidder.name}</span>
-                </motion.p>
-                <motion.p initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.55 }} className="text-3xl font-black font-bebas mt-2" style={{ color: '#00ff88', textShadow: '0 0 15px rgba(0,255,136,0.6)' }}>
-                  {formatCr(currentBid)}
-                </motion.p>
-              </>
-            )}
-          </motion.div>
-        )}
-
-        {phase === 'UNSOLD' && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 flex flex-col items-center justify-center text-center z-20"
-            style={{ background: 'rgba(0,0,0,0.90)', backdropFilter: 'blur(6px)' }}
-          >
-            <motion.div className="text-5xl mb-4">❌</motion.div>
-            <motion.div
-              initial={{ scale: 2.5, opacity: 0, rotate: -12 }}
-              animate={{ scale: 1, opacity: 1, rotate: -10 }}
-              transition={{ duration: 0.4, ease: [0.175, 0.885, 0.32, 1.275] }}
-              className="font-black font-barlow tracking-widest uppercase px-8 py-2 mb-4 rounded-lg"
-              style={{ fontSize: 'clamp(40px, 10vw, 80px)', color: '#ff3366', border: '4px solid #ff3366', textShadow: '0 0 25px rgba(255,51,102,0.7)', boxShadow: '0 0 35px rgba(255,51,102,0.2)' }}
-            >UNSOLD</motion.div>
-            <p className="text-sm text-av-muted max-w-xs">No franchise matched the base price for <span className="text-white font-bold">{currentPlayer?.name}</span></p>
-          </motion.div>
-        )}
-
-        {phase === 'COMPLETE' && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="absolute inset-0 bg-black/95 flex flex-col items-center justify-center text-center z-20 overflow-y-auto py-8"
-          >
-            <Trophy className="h-16 w-16 text-neon-gold mb-4 animate-bounce" />
-            <h3 className="text-2xl font-black tracking-tight text-white mb-2">MEGA AUCTION COMPLETE</h3>
-            <p className="text-sm text-av-muted max-w-sm mb-6">All players have been drafted. Review your final squad in HQ.</p>
-            <button
-              onClick={() => router.push('/lineup')}
-              className="bg-neon-gold text-midnight px-6 py-2.5 rounded-lg font-bold flex items-center space-x-2"
-            >
-              <span>Go to HQ</span>
-              <ArrowRight className="h-4 w-4" />
-            </button>
-
-            {/* V3: Admin — Accelerated Unsold Round */}
-            {isAdmin && unsoldPlayers.length > 0 && (
-              <div className="mt-6 w-full max-w-lg px-4">
-                <h4 className="text-sm font-bold text-neon-gold uppercase tracking-wider mb-3">
-                  Accelerated Round — Unsold Players ({unsoldPlayers.length})
-                </h4>
-                <div className="max-h-40 overflow-y-auto space-y-2 mb-4">
-                  {unsoldPlayers.map(p => (
-                    <label key={p.id} className="flex items-center gap-3 cursor-pointer text-sm text-white bg-void/40 p-2 rounded-lg">
-                      <input
-                        type="checkbox"
-                        checked={selectedUnsoldIds.includes(p.id)}
-                        onChange={e => {
-                          if (e.target.checked) setSelectedUnsoldIds(prev => [...prev, p.id]);
-                          else setSelectedUnsoldIds(prev => prev.filter(id => id !== p.id));
-                        }}
-                        className="accent-neon-gold"
-                      />
-                      <span>{p.flag} {p.name}</span>
-                      <span className="text-av-muted text-xs">{formatCr(p.basePrice)}</span>
-                    </label>
-                  ))}
+              {/* Header: equal-height pill badges */}
+              <div className="flex flex-wrap items-center gap-2 mb-4 pr-16">
+                {/* Flag & Country */}
+                <div className="h-7 flex items-center gap-2 px-3 rounded-full border bg-white/5 border-white/10 text-[10px] font-black uppercase tracking-widest text-slate-300 font-barlow shrink-0">
+                  <span className="text-sm leading-none">{currentPlayer.flag}</span>
+                  <span>{currentPlayer.country}</span>
                 </div>
-                {selectedUnsoldIds.length > 0 && (
-                  <button
-                    onClick={() => {
-                      triggerAdminAction('reintroduce', selectedUnsoldIds);
-                      setSelectedUnsoldIds([]);
+
+                {/* Age */}
+                <div className="h-7 flex items-center px-3 rounded-full border bg-white/5 border-white/10 text-[10px] font-black uppercase tracking-widest text-slate-300 font-barlow shrink-0">
+                  <span>{currentPlayer.age} YEARS</span>
+                </div>
+
+                {/* Capped / Uncapped */}
+                <div 
+                  className="h-7 flex items-center px-3 rounded-full border text-[10px] font-black uppercase tracking-widest shrink-0"
+                  style={currentPlayer.capped 
+                    ? { background: 'rgba(245,197,24,0.1)', borderColor: 'rgba(245,197,24,0.25)', color: '#f5c518' }
+                    : { background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }
+                  }
+                >
+                  <span>{currentPlayer.capped ? 'CAPPED' : 'UNCAPPED'}</span>
+                </div>
+
+                {/* Overseas / Indian */}
+                <div 
+                  className="h-7 flex items-center px-3 rounded-full border text-[10px] font-black uppercase tracking-widest shrink-0"
+                  style={currentPlayer.overseas 
+                    ? { background: 'rgba(0,173,239,0.1)', borderColor: 'rgba(0,173,239,0.25)', color: '#00adef' }
+                    : { background: 'rgba(0,255,136,0.1)', borderColor: 'rgba(0,255,136,0.25)', color: '#00ff88' }
+                  }
+                >
+                  <span>{currentPlayer.overseas ? 'OVERSEAS' : 'INDIAN'}</span>
+                </div>
+
+                {/* Role */}
+                <div className={`h-7 flex items-center px-3 rounded-full border text-[10px] font-black uppercase tracking-widest font-barlow shrink-0 ${
+                  currentPlayer.role === 'BAT' ? 'bg-neon-cyan/10 text-neon-cyan border-neon-cyan/25' :
+                  currentPlayer.role === 'BOWL' ? 'bg-neon-red/10 text-neon-red border-neon-red/25' :
+                  currentPlayer.role === 'WK' ? 'bg-neon-gold/10 text-neon-gold border-neon-gold/25' :
+                  'bg-neon-purple/10 text-neon-purple border-neon-purple/25'
+                }`}>
+                  {currentPlayer.role}
+                </div>
+              </div>
+
+              {/* Main Section: split layout */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center flex-1">
+                {/* Left block: Player Name, OVR, styles */}
+                <div className="md:col-span-7 flex flex-col justify-center space-y-4">
+                  <div>
+                    {currentPlayer.category && (
+                      <span className="text-[9px] uppercase font-black tracking-widest block w-fit px-2.5 py-0.5 rounded border mb-2"
+                        style={{ background: 'rgba(245,197,24,0.06)', borderColor: 'rgba(245,197,24,0.15)', color: '#f5c518' }}>
+                        {currentPlayer.category.replace(/_/g, ' ')}
+                      </span>
+                    )}
+                    <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white uppercase font-barlow leading-none">
+                      {currentPlayer.name}
+                    </h2>
+                  </div>
+
+                  {/* Batting/Bowling styles (neatly equal-height badge row) */}
+                  <div className="flex flex-wrap gap-2">
+                    {currentPlayer.battingStyle && (
+                      <div className="h-7 flex items-center px-2.5 rounded-lg border border-white/5 bg-void/50 text-[10px] font-bold text-slate-300 uppercase tracking-wide">
+                        🏏 {currentPlayer.battingStyle}
+                      </div>
+                    )}
+                    {currentPlayer.bowlingStyle && (
+                      <div className="h-7 flex items-center px-2.5 rounded-lg border border-white/5 bg-void/50 text-[10px] font-bold text-slate-300 uppercase tracking-wide">
+                        ⚾ {currentPlayer.bowlingStyle}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Rating indicator */}
+                  <div className="flex items-center space-x-3 bg-void/35 p-3 rounded-2xl border border-white/5 w-fit">
+                    <div className="h-8 w-8 rounded-lg flex items-center justify-center font-black font-bebas text-lg" style={{ backgroundColor: `${ovrColor}15`, color: ovrColor, border: `1px solid ${ovrColor}30` }}>
+                      {currentPlayer.overall}
+                    </div>
+                    <div>
+                      <span className="text-[8px] text-av-muted uppercase tracking-widest font-black block">Overall Rating</span>
+                      <span className="text-[10px] text-slate-300 font-bold uppercase tracking-wide">Class {currentPlayer.overall >= 85 ? 'Elite' : 'Professional'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right block: cricketer silhouette & spotlight */}
+                <div className="md:col-span-5 flex items-center justify-center relative min-h-[220px]">
+                  {/* Spotlight */}
+                  <div 
+                    className="absolute w-44 h-44 rounded-full filter blur-[50px] opacity-35"
+                    style={{
+                      background: activeBidderColor 
+                        ? `radial-gradient(circle, ${activeBidderColor} 0%, transparent 70%)`
+                        : 'radial-gradient(circle, var(--av-neon-gold) 0%, transparent 70%)'
                     }}
-                    className="w-full bg-gradient-to-r from-neon-gold to-yellow-500 text-midnight py-3 rounded-xl text-xs font-black tracking-wider uppercase cursor-pointer"
+                  />
+                  {/* Silhouette SVG based on player's role */}
+                  {currentPlayer.role === 'BAT' || currentPlayer.role === 'WK' ? (
+                    <svg className="w-48 h-48 text-slate-500/80 drop-shadow-[0_0_15px_rgba(255,255,255,0.06)] relative z-10" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M17.5,2A1.5,1.5 0 0,1 19,3.5A1.5,1.5 0 0,1 17.5,5A1.5,1.5 0 0,1 16,3.5A1.5,1.5 0 0,1 17.5,2M4.5,11L8.5,7L15,10L17,8.5L16.2,16H14.5L13.8,11.5L9.5,13.5V20H7.5V13.5L4.5,11M16.5,10.2L18.8,8L19.5,8.7L17.2,10.9L16.5,10.2Z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-48 h-48 text-slate-500/80 drop-shadow-[0_0_15px_rgba(255,255,255,0.06)] relative z-10" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M16.5,2A1.5,1.5 0 0,1 18,3.5A1.5,1.5 0 0,1 16.5,5A1.5,1.5 0 0,1 15,3.5A1.5,1.5 0 0,1 16.5,2M6,10L9,6L16,9L18,8.2L17.2,15H15.5L14.8,11.2L10.5,12.8V19H8.5V12.8L6,10M17.5,9.5L19.2,8.2L19.8,8.8L18.1,10.1L17.5,9.5Z" />
+                    </svg>
+                  )}
+                </div>
+              </div>
+
+              {/* Bottom block: bid status + leader */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end mt-4 pt-4 border-t border-white/5">
+                {/* Visual center bid amount */}
+                <div className="flex flex-col space-y-1">
+                  <span className="text-[9px] uppercase font-black tracking-widest text-av-muted">
+                    {currentBidderId ? '⚡ CURRENT LEADER BID' : '📌 OPENING BASE PRICE'}
+                  </span>
+                  
+                  <motion.div
+                    key={currentBid}
+                    initial={{ scale: 0.98, opacity: 0.9 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                    className="text-4xl sm:text-5xl font-black font-bebas tracking-wide text-neon-gold leading-none"
+                    style={{ textShadow: '0 0 20px rgba(245,197,24,0.3)' }}
                   >
-                    Launch Accelerated Round ({selectedUnsoldIds.length} players)
-                  </button>
+                    {currentBidderId ? formatCr(currentBid).toUpperCase() : `₹${currentPlayer.basePrice.toFixed(2)} CR`}
+                  </motion.div>
+                </div>
+
+                {/* Team Leader Badge & Bid Button */}
+                <div className="flex flex-col gap-2">
+                  {/* Leader details */}
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="text-[9px] text-av-muted uppercase font-black tracking-widest">Bidding Leader:</span>
+                    {activeBidder ? (
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border bg-void/50" style={{ borderColor: `${activeBidder.primaryColor}30` }}>
+                        <span className="text-base leading-none">{activeBidder.emoji}</span>
+                        <span className="text-xs font-black uppercase font-barlow" style={{ color: activeBidder.primaryColor }}>{activeBidder.abbr}</span>
+                        {currentBidderId === userTeamId && <span className="text-[8px] bg-neon-gold text-midnight font-black px-1 py-0.2 rounded shrink-0">YOU</span>}
+                      </div>
+                    ) : (
+                      <span className="text-[10px] text-av-muted italic">No bids placed</span>
+                    )}
+                  </div>
+
+                  {/* Bidding Trigger Button */}
+                  <div className="w-full">
+                    {(phase === 'BIDDING' || phase === 'RESOLVING') && !paused && userTeamId ? (
+                      (() => {
+                        const uTeam = teams.find((t) => t.id === userTeamId);
+                        const nextBidAmount = currentBidderId ? getNextBid(currentBid) : currentBid;
+                        const isHighestBidder = currentBidderId === userTeamId;
+                        const hasPurse = uTeam ? uTeam.purse >= nextBidAmount : false;
+                        const isRosterFull = uTeam ? uTeam.squad.length >= 25 : false;
+                        const isOverseasQuotaFull = uTeam && currentPlayer.overseas ? uTeam.squad.filter(p => p.overseas).length >= 8 : false;
+                        let btnText = `PLACE BID ${formatCrShort(nextBidAmount)}`;
+                        let isDisabled = false;
+                        if (isHighestBidder) { btnText = '✅ LEADING BID'; isDisabled = true; }
+                        else if (isRosterFull) { btnText = 'SQUAD FULL'; isDisabled = true; }
+                        else if (isOverseasQuotaFull) { btnText = 'OVERSEAS LIMIT'; isDisabled = true; }
+                        else if (!hasPurse) { btnText = 'INSUFFICIENT BUDGET'; isDisabled = true; }
+                        return (
+                          <button onClick={() => placeBid()} disabled={isDisabled}
+                            className={`w-full py-3.5 rounded-xl text-xs font-black tracking-widest uppercase transition-all duration-300 ${isDisabled ? '' : 'bid-button cursor-pointer'}`}
+                            style={isDisabled ? { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(107,107,138,0.7)', cursor: 'not-allowed' } : {}}
+                          >
+                            {btnText}
+                          </button>
+                        );
+                      })()
+                    ) : (
+                      <div className="py-3 rounded-xl text-center text-xs text-av-muted font-bold border border-white/5 bg-white/2">
+                        {paused ? '⏸ Bidding Paused' : 'Bidding Locked'}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-center space-y-4 py-24">
+              <div className="h-16 w-16 rounded-full bg-glass flex items-center justify-center border border-border-custom">
+                <User className="h-8 w-8 text-av-muted animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold uppercase tracking-wider text-white">BCCI Drafting Session</h3>
+                <p className="text-xs text-av-muted max-w-xs mt-1">Waiting for the tournament director to re-open the draft floor.</p>
+              </div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* ── Overlays ──────────────────────────────────────────────────────── */}
+        <AnimatePresence>
+          {/* GONE ONCE / TWICE / SOLD Premium Banners (Feature 5) */}
+          {phase === 'RESOLVING' && countdownText && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="absolute inset-0 bg-void/60 backdrop-blur-[2px] flex items-center justify-center z-20"
+            >
+              <div 
+                className="bg-gradient-to-r from-neon-gold/15 via-void/95 to-neon-gold/15 px-10 py-6 rounded-3xl border text-center shadow-[0_0_40px_rgba(245,197,24,0.15)] max-w-sm"
+                style={{ borderColor: 'rgba(245, 197, 24, 0.35)' }}
+              >
+                <span className="text-[10px] text-av-muted font-black uppercase tracking-widest block mb-1">Live Call</span>
+                <motion.div
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+                  className="text-4xl font-black text-neon-gold tracking-widest uppercase font-barlow"
+                  style={{ textShadow: '0 0 15px rgba(245,197,24,0.5)' }}
+                >
+                  {countdownText.replace(/\.\.\./g, '')}
+                </motion.div>
+                {activeBidder && (
+                  <div className="mt-3 flex items-center justify-center gap-1.5 text-xs font-bold text-slate-300">
+                    <span>Highest Bid:</span>
+                    <span style={{ color: activeBidder.primaryColor }}>{activeBidder.name}</span>
+                  </div>
                 )}
               </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+            </motion.div>
+          )}
+
+          {/* Premium SOLD Broadcast Banner */}
+          {phase === 'SOLD' && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.35, ease: "easeInOut" }}
+              className="absolute inset-0 bg-void/85 backdrop-blur-md flex flex-col items-center justify-center text-center z-20 p-6 overflow-hidden"
+            >
+              {/* Confetti particles */}
+              <div className="absolute inset-0 pointer-events-none">
+                {[...Array(16)].map((_, i) => (
+                  <motion.div key={i}
+                    className="absolute rounded-sm"
+                    style={{ backgroundColor: i % 3 === 0 ? (activeBidder?.primaryColor || '#FFD700') : i % 3 === 1 ? '#f5c518' : '#ffffff', width: `${4 + (i % 5) * 2}px`, height: `${3 + (i % 4)}px`, left: `${5 + i * 6}%`, top: '-10px' }}
+                    animate={{ y: ['0vh', '110vh'], rotate: [0, 360 + i * 40], opacity: [1, 0.8, 0] }}
+                    transition={{ duration: 1.6 + (i % 4) * 0.4, delay: i * 0.05 }}
+                  />
+                ))}
+              </div>
+
+              <div 
+                className="bg-gradient-to-r from-emerald-500/10 via-void/95 to-emerald-500/10 border shadow-[0_0_50px_rgba(16,185,129,0.25)] px-10 py-6 rounded-3xl max-w-sm flex flex-col items-center animate-[pulse_3s_infinite]"
+                style={{ borderColor: 'rgba(16, 185, 129, 0.35)' }}
+              >
+                <span className="text-[10px] text-emerald-400 font-black uppercase tracking-widest block mb-1">Draft Confirmed</span>
+                <h2 className="text-5xl font-black text-emerald-400 tracking-wider uppercase mb-3" style={{ textShadow: '0 0 20px rgba(16,185,129,0.4)' }}>
+                  SOLD
+                </h2>
+                {activeBidder && (
+                  <div className="flex flex-col items-center gap-2 mt-2">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border bg-void/50" style={{ borderColor: `${activeBidder.primaryColor}30` }}>
+                      <span className="text-xl">{activeBidder.emoji}</span>
+                      <span className="text-xs font-black uppercase" style={{ color: activeBidder.primaryColor }}>{activeBidder.name}</span>
+                    </div>
+                    <span className="text-3xl font-black text-neon-gold font-bebas mt-1" style={{ textShadow: '0 0 15px rgba(245,197,24,0.4)' }}>{formatCr(currentBid)}</span>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Premium UNSOLD Broadcast Banner */}
+          {phase === 'UNSOLD' && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.35, ease: "easeInOut" }}
+              className="absolute inset-0 bg-void/85 backdrop-blur-md flex flex-col items-center justify-center text-center z-20 p-6"
+            >
+              <div 
+                className="bg-gradient-to-r from-rose-500/10 via-void/95 to-rose-500/10 border shadow-[0_0_50px_rgba(244,63,94,0.25)] px-10 py-6 rounded-3xl max-w-sm flex flex-col items-center"
+                style={{ borderColor: 'rgba(244, 63, 94, 0.35)' }}
+              >
+                <span className="text-[10px] text-rose-400 font-black uppercase tracking-widest block mb-1">Draft Bypassed</span>
+                <h2 className="text-5xl font-black text-rose-500 tracking-wider uppercase mb-3" style={{ textShadow: '0 0 20px rgba(244,63,94,0.4)' }}>
+                  UNSOLD
+                </h2>
+                <p className="text-xs text-av-muted leading-relaxed">
+                  No franchise matched the base price for <span className="text-white font-bold">{currentPlayer?.name}</span>.
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     );
   };
 

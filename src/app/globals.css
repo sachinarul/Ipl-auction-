@@ -112,11 +112,13 @@ body {
 }
 .bid-button:hover:not(:disabled) {
   background-position: right center;
-  box-shadow: 0 6px 30px rgba(245, 197, 24, 0.5), 0 0 20px rgba(245, 197, 24, 0.3);
-  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 0 35px rgba(245, 197, 24, 0.65), 0 0 15px rgba(245, 197, 24, 0.4);
+  filter: brightness(1.05);
 }
 .bid-button:active:not(:disabled) {
-  transform: translateY(0px) scale(0.99);
+  transform: scale(0.98);
+  box-shadow: 0 0 20px rgba(245, 197, 24, 0.4);
+  transition: transform 0.05s ease;
 }
 .bid-button:disabled {
   background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%);
