@@ -6,7 +6,7 @@ import { useAuctionStore } from '@/store/auctionStore';
 import { TeamId } from '@/types';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Shield, Key, Users, Trophy, Play, ArrowRight, ShieldAlert, Cpu } from 'lucide-react';
+import { Zap, Shield, Key, Users, Trophy, ArrowRight, ShieldAlert, Cpu, Star, Activity } from 'lucide-react';
 import Navbar from '@/components/shared/Navbar';
 
 export default function LandingPage() {
@@ -25,10 +25,7 @@ export default function LandingPage() {
     disconnectSocket,
   } = useAuctionStore();
 
-  // Landing view state: 'lobby' (room action selector) | 'create' | 'join'
   const [mode, setMode] = useState<'lobby' | 'create' | 'join'>('lobby');
-
-  // Input states
   const [managerName, setManagerName] = useState('');
   const [roomName, setRoomName] = useState('');
   const [roomType, setRoomType] = useState<'public' | 'private'>('public');
@@ -36,10 +33,8 @@ export default function LandingPage() {
   const [enableAITeams, setEnableAITeams] = useState(false);
   const [minPlayersToStart, setMinPlayersToStart] = useState(1);
   const [timerDuration, setTimerDuration] = useState(10);
-  
   const [joinCode, setJoinCode] = useState('');
   const [justActioned, setJustActioned] = useState(false);
-
   const [cachedRoomCode, setCachedRoomCode] = useState<string | null>(null);
   const [cachedPlayerToken, setCachedPlayerToken] = useState<string | null>(null);
 
@@ -54,7 +49,6 @@ export default function LandingPage() {
     }
   }, []);
 
-  // Redirect to Lobby when roomCode is populated AND justActioned is true
   useEffect(() => {
     if (roomCode && justActioned) {
       router.push(`/room/${roomCode}`);
@@ -64,7 +58,6 @@ export default function LandingPage() {
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!managerName.trim() || !roomName.trim() || !userTeamId) return;
-
     setJustActioned(true);
     createRoom(roomName, managerName, userTeamId, roomType, password, enableAITeams, minPlayersToStart, timerDuration);
   };
@@ -75,69 +68,169 @@ export default function LandingPage() {
     router.push(`/room/${joinCode}`);
   };
 
+  const stats = [
+    { label: 'Players', value: '200+', icon: '🏏' },
+    { label: 'IPL Teams', value: '10', icon: '🏆' },
+    { label: 'Live Bidding', value: 'Real-Time', icon: '⚡' },
+    { label: 'AI Rivals', value: '5 Modes', icon: '🤖' },
+  ];
+
+  const features = [
+    {
+      icon: Trophy,
+      color: 'var(--av-neon-gold)',
+      glow: 'rgba(245,197,24,0.2)',
+      title: 'Dynamic Budget Pressure',
+      desc: 'Incremental bid scales from ₹5 Lakh up to ₹2 Crore per click as players heat up.',
+    },
+    {
+      icon: Users,
+      color: 'var(--av-neon-cyan)',
+      glow: 'rgba(0,212,255,0.2)',
+      title: 'Realistic AI Managers',
+      desc: 'Aggressive, Conservative, Youth-focused, Star-hunters, and Balanced AI personalities.',
+    },
+    {
+      icon: Cpu,
+      color: 'var(--av-neon-green)',
+      glow: 'rgba(0,255,136,0.2)',
+      title: 'Live Squad HQ & Analytics',
+      desc: 'Track chemistry, role distribution, and spending curves live as you build your 25-player squad.',
+    },
+  ];
+
   return (
-    <div className="min-h-screen flex flex-col relative bg-midnight text-av-text bg-grid-pattern overflow-hidden">
-      {/* Ambient glowing background elements using performant CSS radial gradients */}
-      <div 
-        className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] pointer-events-none z-0 opacity-70"
-        style={{
-          background: 'radial-gradient(circle, rgba(180, 79, 255, 0.12) 0%, rgba(180, 79, 255, 0) 70%)'
-        }}
-      />
-      <div 
-        className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] pointer-events-none z-0 opacity-70"
-        style={{
-          background: 'radial-gradient(circle, rgba(0, 212, 255, 0.08) 0%, rgba(0, 212, 255, 0) 70%)'
-        }}
-      />
-      <div 
-        className="absolute top-[25%] right-[10%] w-[350px] h-[350px] pointer-events-none animate-float z-0"
-        style={{
-          background: 'radial-gradient(circle, rgba(245, 197, 24, 0.05) 0%, rgba(245, 197, 24, 0) 75%)',
-          willChange: 'transform'
-        }}
-      />
+    <div className="min-h-screen flex flex-col relative bg-midnight text-av-text overflow-hidden">
+      {/* Stadium Background */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        {/* Grid */}
+        <div className="absolute inset-0 bg-grid-pattern opacity-60" />
+        {/* Ambient glows */}
+        <div className="absolute top-[-15%] left-[-10%] w-[60vw] h-[60vw] opacity-60"
+          style={{ background: 'radial-gradient(circle, rgba(180, 79, 255, 0.10) 0%, transparent 70%)' }} />
+        <div className="absolute bottom-[-15%] right-[-10%] w-[55vw] h-[55vw] opacity-60"
+          style={{ background: 'radial-gradient(circle, rgba(0, 212, 255, 0.07) 0%, transparent 70%)' }} />
+        <div className="absolute top-[20%] right-[5%] w-[400px] h-[400px] animate-float"
+          style={{ background: 'radial-gradient(circle, rgba(245,197,24,0.05) 0%, transparent 75%)', willChange: 'transform' }} />
+        {/* Spotlight beams */}
+        <div className="absolute top-0 left-0 right-0 h-full overflow-hidden">
+          <div className="hero-beam" />
+          <div className="hero-beam" />
+          <div className="hero-beam" />
+          <div className="hero-beam" />
+        </div>
+        {/* Floor reflection */}
+        <div className="absolute bottom-0 left-0 right-0 h-[40%]"
+          style={{ background: 'linear-gradient(180deg, transparent 0%, rgba(245,197,24,0.015) 100%)' }} />
+      </div>
 
       <Navbar />
 
-      <div className="flex-1 flex flex-col items-center justify-center max-w-7xl mx-auto px-4 py-8 w-full z-10">
-        
-        {/* Title Brand Header */}
+      <div className="flex-1 flex flex-col items-center max-w-7xl mx-auto px-4 py-8 w-full z-10">
+
+        {/* ── Hero Section ── */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -24 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8 max-w-2xl"
+          transition={{ duration: 0.6 }}
+          className="text-center mb-10 max-w-3xl w-full"
         >
-          <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full border border-neon-gold/30 bg-neon-gold/10 text-neon-gold font-bold text-xs uppercase tracking-wider mb-4 animate-pulse">
-            <Zap className="h-3 w-3 fill-neon-gold" />
-            <span>Founder: Sachin Arul</span>
-          </div>
-          <h1 className="text-4xl sm:text-6xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-neon-gold to-neon-cyan mb-4">
-            AUCTIONVERSE CRICKET
+          {/* Founder badge */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.15 }}
+            className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full border border-neon-gold/30 bg-neon-gold/8 text-neon-gold font-bold text-[10px] uppercase tracking-widest mb-5"
+            style={{ boxShadow: '0 0 20px rgba(245,197,24,0.1)' }}
+          >
+            <Star className="h-3 w-3 fill-neon-gold" />
+            <span>IPL Mega Auction Simulator · Founder: Sachin Arul</span>
+          </motion.div>
+
+          {/* Main heading */}
+          <h1 className="text-5xl sm:text-7xl font-black uppercase tracking-tight mb-5 font-barlow leading-none">
+            <span className="block text-white" style={{ textShadow: '0 0 40px rgba(255,255,255,0.1)' }}>
+              AUCTION
+            </span>
+            <span
+              className="block"
+              style={{
+                background: 'linear-gradient(135deg, #f5c518 0%, #ffd700 40%, #e6b800 70%, #f5c518 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                textShadow: 'none',
+                filter: 'drop-shadow(0 0 20px rgba(245,197,24,0.4))',
+              }}
+            >
+              VERSE 3.0
+            </span>
           </h1>
-          <p className="text-sm sm:text-base text-av-muted font-medium">
-            Assemble a custom room, invite friends or challenge rival managers, outbid strategies in real-time, and manage your ₹120 Crore budget.
+
+          {/* Sub label */}
+          <p className="text-sm sm:text-base text-slate-400 font-medium max-w-xl mx-auto leading-relaxed">
+            The most premium IPL auction experience. Outbid rivals in real-time, manage a{' '}
+            <span className="text-neon-gold font-bold">₹120 Crore</span> budget, and assemble your dream XI.
           </p>
+
+          {/* Stats row */}
+          <div className="flex items-center justify-center gap-4 sm:gap-8 mt-8 flex-wrap">
+            {stats.map((s, i) => (
+              <motion.div
+                key={s.label}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 + i * 0.08 }}
+                className="flex flex-col items-center"
+              >
+                <span className="text-xl mb-0.5">{s.icon}</span>
+                <span className="text-lg font-black text-white font-barlow">{s.value}</span>
+                <span className="text-[9px] uppercase tracking-widest text-av-muted font-bold">{s.label}</span>
+              </motion.div>
+            ))}
+          </div>
         </motion.div>
 
+        {/* IPL Teams Scrolling Ticker */}
+        <div className="w-full mb-10 overflow-hidden">
+          <div className="flex gap-3 animate-[tickerScroll_25s_linear_infinite]" style={{ width: 'max-content' }}>
+            {[...TEAMS_DB, ...TEAMS_DB].map((t, i) => (
+              <div
+                key={`${t.id}-${i}`}
+                className="flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-bold uppercase tracking-wider shrink-0"
+                style={{
+                  borderColor: `${t.primaryColor}30`,
+                  background: `${t.primaryColor}08`,
+                  color: t.primaryColor,
+                }}
+              >
+                <span className="text-base">{t.emoji}</span>
+                <span className="font-barlow">{t.abbr}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Error ── */}
         {errorMsg && (
-          <div className="w-full max-w-md p-4 bg-neon-red/10 border border-neon-red/30 text-neon-red text-xs rounded-xl flex items-center space-x-2 mb-6">
+          <div className="w-full max-w-md p-4 bg-neon-red/10 border border-neon-red/30 text-neon-red text-xs rounded-2xl flex items-center space-x-2 mb-6">
             <ShieldAlert className="h-4 w-4 shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
 
+        {/* ── Rejoin Banner ── */}
         {cachedRoomCode && cachedPlayerToken && !roomCode && (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-md p-4 mb-6 bg-neon-gold/5 border border-neon-gold/30 rounded-xl flex items-center justify-between gap-4"
+            className="w-full max-w-lg p-4 mb-6 border border-neon-gold/30 rounded-2xl flex items-center justify-between gap-4"
+            style={{ background: 'rgba(245,197,24,0.04)', boxShadow: '0 0 20px rgba(245,197,24,0.06)' }}
           >
-            <div className="flex items-center space-x-2.5 text-xs">
-              <Shield className="h-5 w-5 text-neon-gold shrink-0 animate-pulse" />
+            <div className="flex items-center space-x-3 text-xs">
+              <Activity className="h-5 w-5 text-neon-gold shrink-0 animate-pulse" />
               <div className="text-left">
-                <span className="font-bold text-white uppercase block">Unfinished Session Detected</span>
-                <span className="text-av-muted">Room Code: <span className="text-neon-gold font-bold">{cachedRoomCode}</span></span>
+                <span className="font-bold text-white uppercase block text-xs tracking-wider">Unfinished Session</span>
+                <span className="text-av-muted">Room: <span className="text-neon-gold font-bold tracking-widest">{cachedRoomCode}</span></span>
               </div>
             </div>
             <button
@@ -149,17 +242,18 @@ export default function LandingPage() {
                     localStorage.removeItem('av_player_token');
                     setCachedRoomCode(null);
                     setCachedPlayerToken(null);
-                    alert(`Failed to rejoin session: ${res.reason || 'Room not found'}`);
+                    alert(`Failed to rejoin: ${res.reason || 'Room not found'}`);
                   }
                 });
               }}
-              className="bg-neon-gold text-midnight px-3.5 py-1.5 rounded-lg font-bold text-xs uppercase tracking-wider shrink-0 cursor-pointer"
+              className="bid-button px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider shrink-0"
             >
               Rejoin
             </button>
           </motion.div>
         )}
 
+        {/* ── Main Action Area ── */}
         <AnimatePresence mode="wait">
           {roomCode && !justActioned ? (
             <motion.div
@@ -167,34 +261,30 @@ export default function LandingPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-md p-6 glass-panel rounded-2xl text-center space-y-6 my-6 border border-neon-gold/30"
+              className="w-full max-w-md p-8 premium-card rounded-3xl text-center space-y-6 my-4"
             >
-              <div className="h-12 w-12 rounded-full bg-neon-gold/10 flex items-center justify-center border border-neon-gold/20 mx-auto">
-                <Shield className="h-6 w-6 text-neon-gold" />
+              <div className="h-14 w-14 rounded-full flex items-center justify-center border border-neon-gold/30 mx-auto"
+                style={{ background: 'rgba(245,197,24,0.08)', boxShadow: '0 0 20px rgba(245,197,24,0.15)' }}>
+                <Shield className="h-7 w-7 text-neon-gold" />
               </div>
               <div>
-                <h3 className="text-lg font-black text-white uppercase tracking-wider">Active Session Found</h3>
+                <h3 className="text-xl font-black text-white uppercase tracking-wider font-barlow">Active Session</h3>
                 <p className="text-xs text-av-muted mt-2">
-                  You are currently joined to room <span className="text-neon-gold font-bold">{roomCode}</span>. Would you like to rejoin it or leave to create/join a new room?
+                  You're joined to room <span className="text-neon-gold font-bold tracking-widest">{roomCode}</span>. Rejoin or start fresh.
                 </p>
               </div>
-              <div className="flex gap-4">
+              <div className="flex gap-3">
                 <button
                   type="button"
-                  onClick={() => {
-                    disconnectSocket();
-                    clearError();
-                  }}
-                  className="flex-1 border border-neon-red/30 hover:border-neon-red/50 bg-neon-red/10 text-neon-red py-3 rounded-xl text-xs font-bold uppercase transition-all duration-200"
+                  onClick={() => { disconnectSocket(); clearError(); }}
+                  className="flex-1 border border-neon-red/30 hover:border-neon-red/50 bg-neon-red/8 text-neon-red py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200"
                 >
                   Leave Room
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setJustActioned(true);
-                  }}
-                  className="flex-1 bg-gradient-to-r from-neon-gold to-yellow-500 text-midnight py-3 rounded-xl text-xs font-black tracking-wider uppercase font-extrabold cursor-pointer hover:shadow-[0_0_15px_rgba(245,197,24,0.3)] transition-all duration-200"
+                  onClick={() => setJustActioned(true)}
+                  className="bid-button flex-1 py-3 rounded-xl text-xs font-black tracking-wider uppercase cursor-pointer"
                 >
                   Rejoin Room
                 </button>
@@ -205,50 +295,57 @@ export default function LandingPage() {
               {mode === 'lobby' && (
                 <motion.div
                   key="lobby"
-                  initial={{ opacity: 0, scale: 0.95 }}
+                  initial={{ opacity: 0, scale: 0.96 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="flex flex-col sm:flex-row gap-6 w-full max-w-2xl justify-center items-center my-6"
+                  exit={{ opacity: 0, scale: 0.96 }}
+                  className="flex flex-col sm:flex-row gap-5 w-full max-w-2xl justify-center items-center my-4"
                 >
-                  {/* Card CTA: Create Room */}
+                  {/* Create Room Card */}
                   <button
-                    onClick={() => {
-                      setMode('create');
-                      clearError();
-                    }}
-                    className="w-full max-w-xs p-8 glass-panel rounded-3xl text-center flex flex-col items-center gap-5 hover:border-neon-gold/60 cursor-pointer transform hover:scale-[1.03] hover:shadow-[0_0_35px_rgba(245,197,24,0.2)] transition-all duration-300 group"
+                    onClick={() => { setMode('create'); clearError(); }}
+                    className="w-full max-w-xs p-8 premium-card rounded-3xl text-center flex flex-col items-center gap-5 cursor-pointer group"
                   >
-                    <div className="h-14 w-14 rounded-2xl bg-neon-gold/10 flex items-center justify-center border border-neon-gold/25 group-hover:bg-neon-gold/20 group-hover:scale-110 transition-all duration-300">
-                      <Shield className="h-7 w-7 text-neon-gold filter drop-shadow-[0_0_5px_rgba(245,197,24,0.3)]" />
+                    <div
+                      className="h-16 w-16 rounded-2xl flex items-center justify-center border transition-all duration-300 group-hover:scale-110"
+                      style={{
+                        background: 'rgba(245,197,24,0.08)',
+                        borderColor: 'rgba(245,197,24,0.25)',
+                        boxShadow: '0 0 0 rgba(245,197,24,0)',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 0 20px rgba(245,197,24,0.3)')}
+                      onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}
+                    >
+                      <Shield className="h-8 w-8 text-neon-gold" style={{ filter: 'drop-shadow(0 0 6px rgba(245,197,24,0.4))' }} />
                     </div>
                     <div>
-                      <h3 className="text-xl font-black text-white uppercase tracking-wider group-hover:text-neon-gold transition-colors duration-200">Create Room</h3>
+                      <h3 className="text-xl font-black text-white uppercase tracking-wider font-barlow group-hover:text-neon-gold transition-colors duration-200">Create Room</h3>
                       <p className="text-xs text-av-muted mt-2 leading-relaxed">Host your own auction room and manage bid settings as Admin.</p>
                     </div>
-                    <div className="flex items-center text-xs font-extrabold text-neon-gold space-x-2 uppercase mt-3 tracking-widest">
+                    <div className="flex items-center text-xs font-extrabold text-neon-gold space-x-2 uppercase tracking-widest">
                       <span>Get Started</span>
-                      <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
+                      <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1.5 transition-transform duration-200" />
                     </div>
                   </button>
 
-                  {/* Card CTA: Join Room */}
+                  {/* Join Room Card */}
                   <button
-                    onClick={() => {
-                      setMode('join');
-                      clearError();
-                    }}
-                    className="w-full max-w-xs p-8 glass-panel rounded-3xl text-center flex flex-col items-center gap-5 hover:border-neon-cyan/60 cursor-pointer transform hover:scale-[1.03] hover:shadow-[0_0_35px_rgba(0,212,255,0.2)] transition-all duration-300 group"
+                    onClick={() => { setMode('join'); clearError(); }}
+                    className="w-full max-w-xs p-8 premium-card rounded-3xl text-center flex flex-col items-center gap-5 cursor-pointer group"
+                    style={{ borderColor: 'rgba(0,212,255,0.12)' }}
                   >
-                    <div className="h-14 w-14 rounded-2xl bg-neon-cyan/10 flex items-center justify-center border border-neon-cyan/25 group-hover:bg-neon-cyan/20 group-hover:scale-110 transition-all duration-300">
-                      <Users className="h-7 w-7 text-neon-cyan filter drop-shadow-[0_0_5px_rgba(0,212,255,0.3)]" />
+                    <div
+                      className="h-16 w-16 rounded-2xl flex items-center justify-center border transition-all duration-300 group-hover:scale-110"
+                      style={{ background: 'rgba(0,212,255,0.08)', borderColor: 'rgba(0,212,255,0.25)' }}
+                    >
+                      <Users className="h-8 w-8 text-neon-cyan" style={{ filter: 'drop-shadow(0 0 6px rgba(0,212,255,0.4))' }} />
                     </div>
                     <div>
-                      <h3 className="text-xl font-black text-white uppercase tracking-wider group-hover:text-neon-cyan transition-colors duration-200">Join Room</h3>
+                      <h3 className="text-xl font-black text-white uppercase tracking-wider font-barlow group-hover:text-neon-cyan transition-colors duration-200">Join Room</h3>
                       <p className="text-xs text-av-muted mt-2 leading-relaxed">Enter a lobby code to connect to a friend's active auction room.</p>
                     </div>
-                    <div className="flex items-center text-xs font-extrabold text-neon-cyan space-x-2 uppercase mt-3 tracking-widest">
+                    <div className="flex items-center text-xs font-extrabold text-neon-cyan space-x-2 uppercase tracking-widest">
                       <span>Enter Code</span>
-                      <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
+                      <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1.5 transition-transform duration-200" />
                     </div>
                   </button>
                 </motion.div>
@@ -257,129 +354,115 @@ export default function LandingPage() {
               {mode === 'create' && (
                 <motion.form
                   key="create"
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
                   onSubmit={handleCreate}
-                  className="w-full max-w-md glass-panel rounded-2xl p-6 sm:p-8 space-y-5"
+                  className="w-full max-w-lg premium-card rounded-3xl p-6 sm:p-8 space-y-5"
                 >
-                  <div className="text-center pb-2 border-b border-border-custom">
-                    <h3 className="text-xl font-black text-white uppercase tracking-wide">Configure Room</h3>
-                    <p className="text-xs text-av-muted mt-1">Host details & franchise branding</p>
+                  <div className="text-center pb-4 border-b border-white/8">
+                    <h3 className="text-xl font-black text-white uppercase tracking-wider font-barlow">Configure Room</h3>
+                    <p className="text-xs text-av-muted mt-1">Set up your auction house settings</p>
                   </div>
 
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] text-av-muted uppercase font-bold tracking-wider">Admin/Manager Name</label>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] text-av-muted uppercase font-black tracking-widest">Admin / Manager Name</label>
                     <input
-                      type="text"
-                      required
+                      type="text" required
                       placeholder="Enter your name..."
                       value={managerName}
                       onChange={(e) => setManagerName(e.target.value)}
-                      className="w-full bg-void border border-border-custom focus:border-neon-gold text-xs text-white px-4 py-3 rounded-xl focus:outline-none"
+                      className="w-full bg-void/80 border border-white/10 focus:border-neon-gold/60 text-xs text-white px-4 py-3 rounded-xl focus:outline-none transition-colors duration-200"
                     />
                   </div>
 
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] text-av-muted uppercase font-bold tracking-wider">Auction Room Name</label>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] text-av-muted uppercase font-black tracking-widest">Auction Room Name</label>
                     <input
-                      type="text"
-                      required
+                      type="text" required
                       placeholder="e.g. BCCI Mega Auction 2025"
                       value={roomName}
                       onChange={(e) => setRoomName(e.target.value)}
-                      className="w-full bg-void border border-border-custom focus:border-neon-gold text-xs text-white px-4 py-3 rounded-xl focus:outline-none"
+                      className="w-full bg-void/80 border border-white/10 focus:border-neon-gold/60 text-xs text-white px-4 py-3 rounded-xl focus:outline-none transition-colors duration-200"
                     />
                   </div>
 
-                  {/* Room Type Switch */}
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] text-av-muted uppercase font-bold tracking-wider">Access Setting</label>
-                    <div className="flex rounded-lg bg-void border border-border-custom p-1">
-                      <button
-                        type="button"
-                        onClick={() => setRoomType('public')}
-                        className={`flex-1 py-1.5 text-xs font-bold rounded transition-all duration-300 ${
-                          roomType === 'public' ? 'bg-neon-gold text-midnight' : 'text-av-muted'
-                        }`}
-                      >
-                        Public Table
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setRoomType('private')}
-                        className={`flex-1 py-1.5 text-xs font-bold rounded transition-all duration-300 ${
-                          roomType === 'private' ? 'bg-neon-gold text-midnight' : 'text-av-muted'
-                        }`}
-                      >
-                        Private (Passcode)
-                      </button>
+                  {/* Room Type */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] text-av-muted uppercase font-black tracking-widest">Access Setting</label>
+                    <div className="flex rounded-xl bg-void/80 border border-white/10 p-1 gap-1">
+                      {(['public', 'private'] as const).map((type) => (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => setRoomType(type)}
+                          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-250 ${
+                            roomType === type
+                              ? 'bg-neon-gold text-midnight font-black'
+                              : 'text-av-muted hover:text-white'
+                          }`}
+                        >
+                          {type === 'public' ? 'Public Table' : 'Private (Passcode)'}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
                   {roomType === 'private' && (
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] text-av-muted uppercase font-bold tracking-wider">Room Password</label>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] text-av-muted uppercase font-black tracking-widest">Room Password</label>
                       <div className="relative">
                         <Key className="absolute left-3 top-3 h-4 w-4 text-av-muted" />
                         <input
-                          type="password"
-                          required
+                          type="password" required
                           placeholder="Create room passcode..."
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          className="w-full bg-void border border-border-custom text-xs text-white pl-10 pr-4 py-2.5 rounded-xl focus:outline-none"
+                          className="w-full bg-void/80 border border-white/10 text-xs text-white pl-10 pr-4 py-3 rounded-xl focus:outline-none"
                         />
                       </div>
                     </div>
                   )}
 
-                  {/* Enable AI Teams Toggle */}
-                  <div className="flex items-center justify-between p-3.5 bg-void border border-border-custom rounded-xl">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-xs font-bold text-white uppercase">Enable AI Teams</span>
-                      <span className="text-[10px] text-av-muted">Unclaimed franchises will be bid on by AI bots</span>
+                  {/* AI Teams Toggle */}
+                  <div className="flex items-center justify-between p-4 bg-void/60 border border-white/8 rounded-xl">
+                    <div>
+                      <span className="text-xs font-bold text-white uppercase tracking-wider block">Enable AI Teams</span>
+                      <span className="text-[10px] text-av-muted">Unclaimed franchises will bid using AI personalities</span>
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={enableAITeams}
-                      onChange={(e) => setEnableAITeams(e.target.checked)}
-                      className="w-4 h-4 accent-neon-gold bg-void border-border-custom rounded cursor-pointer"
-                    />
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" checked={enableAITeams} onChange={(e) => setEnableAITeams(e.target.checked)} className="sr-only peer" />
+                      <div className="w-10 h-5 bg-void rounded-full border border-white/20 peer-checked:border-neon-gold/50 peer-checked:bg-neon-gold/20 transition-all duration-200 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-av-muted after:rounded-full after:h-4 after:w-4 after:transition-all after:duration-200 peer-checked:after:translate-x-5 peer-checked:after:bg-neon-gold" />
+                    </label>
                   </div>
 
-                  {/* Min Players To Start Dropdown */}
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] text-av-muted uppercase font-bold tracking-wider">Minimum Players to Start</label>
-                    <select
-                      value={minPlayersToStart}
-                      onChange={(e) => setMinPlayersToStart(parseInt(e.target.value))}
-                      className="w-full bg-void border border-border-custom focus:border-neon-gold text-xs text-white px-4 py-3.5 rounded-xl focus:outline-none cursor-pointer font-bold"
-                    >
-                      <option value="1">1 Player</option>
-                      <option value="2">2 Players</option>
-                      <option value="4">4 Players</option>
-                      <option value="6">6 Players</option>
-                    </select>
+                  {/* Min Players & Timer */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] text-av-muted uppercase font-black tracking-widest">Min Players</label>
+                      <select
+                        value={minPlayersToStart}
+                        onChange={(e) => setMinPlayersToStart(parseInt(e.target.value))}
+                        className="w-full bg-void/80 border border-white/10 text-xs text-white px-3 py-3 rounded-xl focus:outline-none cursor-pointer font-bold"
+                      >
+                        {[1, 2, 4, 6].map(n => <option key={n} value={n}>{n} Player{n > 1 ? 's' : ''}</option>)}
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] text-av-muted uppercase font-black tracking-widest">Auction Timer</label>
+                      <select
+                        value={timerDuration}
+                        onChange={(e) => setTimerDuration(parseInt(e.target.value))}
+                        className="w-full bg-void/80 border border-white/10 text-xs text-white px-3 py-3 rounded-xl focus:outline-none cursor-pointer font-bold"
+                      >
+                        {[10, 15, 20].map(s => <option key={s} value={s}>{s} Seconds</option>)}
+                      </select>
+                    </div>
                   </div>
 
-                  {/* Auction Timer Dropdown */}
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] text-av-muted uppercase font-bold tracking-wider">Auction Timer</label>
-                    <select
-                      value={timerDuration}
-                      onChange={(e) => setTimerDuration(parseInt(e.target.value))}
-                      className="w-full bg-void border border-border-custom focus:border-neon-gold text-xs text-white px-4 py-3.5 rounded-xl focus:outline-none cursor-pointer font-bold"
-                    >
-                      <option value="10">10 Seconds</option>
-                      <option value="15">15 Seconds</option>
-                      <option value="20">20 Seconds</option>
-                    </select>
-                  </div>
-
-                  {/* IPL Team Selector */}
+                  {/* Team Selector */}
                   <div className="flex flex-col gap-2">
-                    <label className="text-[10px] text-av-muted uppercase font-bold tracking-wider">Select Your Team</label>
+                    <label className="text-[10px] text-av-muted uppercase font-black tracking-widest">Select Your Franchise</label>
                     <div className="grid grid-cols-5 gap-2">
                       {TEAMS_DB.map((t) => {
                         const isSelected = userTeamId === t.id;
@@ -388,56 +471,32 @@ export default function LandingPage() {
                             key={t.id}
                             type="button"
                             onClick={() => selectUserTeam(t.id as TeamId)}
-                            className="py-2.5 rounded-xl border text-xs font-bold transition-all duration-300 flex flex-col items-center justify-center gap-1 cursor-pointer transform hover:scale-105 active:scale-95"
+                            className="py-3 rounded-xl border text-xs font-bold transition-all duration-250 flex flex-col items-center justify-center gap-1 cursor-pointer"
                             style={{
-                              borderColor: isSelected ? t.primaryColor : 'var(--av-border)',
-                              background: isSelected 
-                                ? `linear-gradient(135deg, ${t.primaryColor}25, ${t.secondaryColor}12)` 
-                                : 'var(--av-glass)',
-                              boxShadow: isSelected ? `0 0 15px ${t.primaryColor}40` : 'none',
-                              color: isSelected ? '#ffffff' : 'rgba(255, 255, 255, 0.7)',
-                            }}
-                            onMouseEnter={(e) => {
-                              if (!isSelected) {
-                                e.currentTarget.style.borderColor = `${t.primaryColor}80`;
-                                e.currentTarget.style.background = `${t.primaryColor}0c`;
-                                e.currentTarget.style.boxShadow = `0 0 12px ${t.primaryColor}20`;
-                              }
-                            }}
-                            onMouseLeave={(e) => {
-                              if (!isSelected) {
-                                e.currentTarget.style.borderColor = 'var(--av-border)';
-                                e.currentTarget.style.background = 'var(--av-glass)';
-                                e.currentTarget.style.boxShadow = 'none';
-                              }
+                              borderColor: isSelected ? t.primaryColor : 'rgba(255,255,255,0.08)',
+                              background: isSelected ? `linear-gradient(135deg, ${t.primaryColor}20, ${t.secondaryColor}10)` : 'rgba(255,255,255,0.02)',
+                              boxShadow: isSelected ? `0 0 14px ${t.primaryColor}35, inset 0 0 8px ${t.primaryColor}08` : 'none',
+                              transform: isSelected ? 'scale(1.05)' : 'scale(1)',
                             }}
                           >
-                            <span className="text-xl filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]">{t.emoji}</span>
-                            <span className="text-[9px] uppercase tracking-wider font-extrabold">{t.abbr}</span>
+                            <span className="text-xl filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">{t.emoji}</span>
+                            <span className="text-[8px] uppercase tracking-wider font-extrabold" style={{ color: isSelected ? t.primaryColor : 'rgba(255,255,255,0.5)' }}>{t.abbr}</span>
                           </button>
                         );
                       })}
                     </div>
                   </div>
 
-                  <div className="flex gap-4 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setMode('lobby')}
-                      className="flex-1 border border-border-custom hover:border-white/20 bg-glass text-white py-3 rounded-xl text-xs font-bold uppercase"
-                    >
-                      Cancel
+                  <div className="flex gap-3 pt-1">
+                    <button type="button" onClick={() => setMode('lobby')}
+                      className="flex-1 border border-white/10 hover:border-white/20 bg-white/3 text-white py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all">
+                      Back
                     </button>
-                    <button
-                      type="submit"
-                      disabled={!userTeamId}
-                      className={`flex-1 py-3 rounded-xl text-xs font-black tracking-wider uppercase ${
-                        userTeamId
-                          ? 'bg-gradient-to-r from-neon-gold to-yellow-500 text-midnight hover:shadow-[0_0_15px_rgba(245,197,24,0.3)] font-extrabold cursor-pointer'
-                          : 'bg-glass border border-border-custom text-av-muted cursor-not-allowed'
-                      }`}
-                    >
-                      Create
+                    <button type="submit" disabled={!userTeamId}
+                      className={`flex-1 py-3.5 rounded-xl text-xs font-black tracking-widest uppercase transition-all ${
+                        userTeamId ? 'bid-button cursor-pointer' : 'bg-white/3 border border-white/8 text-av-muted cursor-not-allowed'
+                      }`}>
+                      Create Auction
                     </button>
                   </div>
                 </motion.form>
@@ -446,42 +505,42 @@ export default function LandingPage() {
               {mode === 'join' && (
                 <motion.form
                   key="join"
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
                   onSubmit={handleJoin}
-                  className="w-full max-w-md glass-panel rounded-2xl p-6 sm:p-8 space-y-5"
+                  className="w-full max-w-md premium-card rounded-3xl p-6 sm:p-8 space-y-6"
                 >
-                  <div className="text-center pb-2 border-b border-border-custom">
-                    <h3 className="text-xl font-black text-white uppercase tracking-wide">Join Room</h3>
-                    <p className="text-xs text-av-muted mt-1">Enter a lobby code to connect to an active auction room</p>
+                  <div className="text-center pb-4 border-b border-white/8">
+                    <h3 className="text-xl font-black text-white uppercase tracking-wider font-barlow">Join Room</h3>
+                    <p className="text-xs text-av-muted mt-1">Enter a lobby code to connect to an active auction</p>
                   </div>
 
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] text-av-muted uppercase font-bold tracking-wider">Room Code</label>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[10px] text-av-muted uppercase font-black tracking-widest">Room Code</label>
                     <input
-                      type="text"
-                      required
-                      placeholder="Enter 6-character code..."
+                      type="text" required
+                      placeholder="ENTER 6-CHARACTER CODE"
                       value={joinCode}
                       onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                      className="w-full bg-void border border-border-custom focus:border-neon-cyan text-xs text-white px-4 py-3 rounded-xl focus:outline-none tracking-widest uppercase font-black text-center"
+                      className="w-full bg-void/80 border border-white/10 focus:border-neon-cyan/60 text-sm text-white px-4 py-4 rounded-xl focus:outline-none tracking-[0.4em] uppercase font-black text-center transition-colors duration-200"
+                      style={{ letterSpacing: '0.3em' }}
                     />
                   </div>
 
-                  <div className="flex gap-4 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setMode('lobby')}
-                      className="flex-1 border border-border-custom hover:border-white/20 bg-glass text-white py-3 rounded-xl text-xs font-bold uppercase"
-                    >
-                      Cancel
+                  <div className="flex gap-3">
+                    <button type="button" onClick={() => setMode('lobby')}
+                      className="flex-1 border border-white/10 hover:border-white/20 bg-white/3 text-white py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all">
+                      Back
                     </button>
-                    <button
-                      type="submit"
-                      className="flex-1 py-3 bg-gradient-to-r from-neon-cyan to-blue-500 text-midnight hover:shadow-[0_0_15px_rgba(0,212,255,0.3)] text-xs font-black tracking-wider uppercase font-extrabold cursor-pointer"
-                    >
-                      Next
+                    <button type="submit"
+                      className="flex-1 py-3.5 rounded-xl text-xs font-black tracking-widest uppercase cursor-pointer transition-all"
+                      style={{
+                        background: 'linear-gradient(135deg, #00d4ff, #0080ff)',
+                        color: '#03010a',
+                        boxShadow: '0 4px 20px rgba(0,212,255,0.3)',
+                      }}>
+                      Enter Arena
                     </button>
                   </div>
                 </motion.form>
@@ -490,31 +549,28 @@ export default function LandingPage() {
           )}
         </AnimatePresence>
 
-        {/* Feature Highlights Footer */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-16 pt-8 border-t border-border-custom w-full">
-          <div className="flex items-start space-x-3">
-            <Trophy className="h-6 w-6 text-neon-gold shrink-0 mt-0.5" />
-            <div>
-              <h4 className="text-sm font-bold tracking-wide">Dynamic Budget Pressure</h4>
-              <p className="text-xs text-av-muted mt-0.5">Incremental bid scales from ₹5 Lakh up to ₹2 Crore per click as players heat up.</p>
-            </div>
-          </div>
-          <div className="flex items-start space-x-3">
-            <Users className="h-6 w-6 text-neon-cyan shrink-0 mt-0.5" />
-            <div>
-              <h4 className="text-sm font-bold tracking-wide">Realistic AI Personalities</h4>
-              <p className="text-xs text-av-muted mt-0.5">Aggressive, Conservative, Youth-focused, Star-hunters, and Balanced AI managers bid against you.</p>
-            </div>
-          </div>
-          <div className="flex items-start space-x-3">
-            <Cpu className="h-6 w-6 text-neon-green shrink-0 mt-0.5" />
-            <div>
-              <h4 className="text-sm font-bold tracking-wide">Live Squad HQ & Analytics</h4>
-              <p className="text-xs text-av-muted mt-0.5">Track your chemistry, role distribution, and spending curves live as you assemble your 25-player squad.</p>
-            </div>
-          </div>
+        {/* ── Feature Cards ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mt-16 pt-8 border-t border-white/6 w-full">
+          {features.map((f, i) => {
+            const Icon = f.icon;
+            return (
+              <motion.div
+                key={f.title}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 + i * 0.1 }}
+                className="premium-card p-6 rounded-2xl flex flex-col gap-3"
+              >
+                <div className="h-11 w-11 rounded-xl flex items-center justify-center border"
+                  style={{ background: `${f.glow.replace('0.2', '0.08')}`, borderColor: `${f.color}30` }}>
+                  <Icon className="h-5 w-5" style={{ color: f.color, filter: `drop-shadow(0 0 6px ${f.color})` }} />
+                </div>
+                <h4 className="text-sm font-black text-white uppercase tracking-wide">{f.title}</h4>
+                <p className="text-xs text-av-muted leading-relaxed">{f.desc}</p>
+              </motion.div>
+            );
+          })}
         </div>
-
       </div>
     </div>
   );

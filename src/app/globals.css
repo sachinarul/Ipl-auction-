@@ -59,46 +59,177 @@ body {
   font-family: var(--font-rajdhani), 'Rajdhani', sans-serif;
 }
 
-/* Custom Utilities for Premium Aesthetics */
+/* ─── Premium Glass Panel ─── */
 .glass-panel {
   background: var(--av-glass);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--av-border);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
 .glass-panel:hover {
   background: var(--av-glass-hover);
   border-color: var(--av-border-hover);
 }
 
-.neon-glow-gold {
-  box-shadow: 0 0 25px rgba(245, 197, 24, 0.25);
-  text-shadow: 0 0 10px rgba(245, 197, 24, 0.45);
+/* ─── Premium Card (stronger glass) ─── */
+.premium-card {
+  background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(245, 197, 24, 0.15);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.premium-card:hover {
+  border-color: rgba(245, 197, 24, 0.3);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.7), 0 0 20px rgba(245,197,24,0.08), inset 0 1px 0 rgba(255,255,255,0.1);
+  transform: translateY(-1px);
 }
 
+/* ─── LED Price Display Panel ─── */
+.led-panel {
+  background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(4,4,12,0.95) 100%);
+  border: 1px solid rgba(245, 197, 24, 0.2);
+  box-shadow: 
+    inset 0 1px 0 rgba(245,197,24,0.1),
+    inset 0 0 30px rgba(245,197,24,0.03),
+    0 4px 20px rgba(0,0,0,0.8);
+}
+
+/* ─── Gold Bid Button ─── */
+.bid-button {
+  background: linear-gradient(135deg, #f5c518 0%, #e6b800 40%, #ffd700 70%, #f5c518 100%);
+  background-size: 200% auto;
+  color: #03010a;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border: none;
+  box-shadow: 0 4px 20px rgba(245, 197, 24, 0.35), 0 1px 0 rgba(255,255,255,0.3) inset;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: bidButtonShimmer 3s linear infinite;
+}
+.bid-button:hover:not(:disabled) {
+  background-position: right center;
+  box-shadow: 0 6px 30px rgba(245, 197, 24, 0.5), 0 0 20px rgba(245, 197, 24, 0.3);
+  transform: translateY(-2px) scale(1.01);
+}
+.bid-button:active:not(:disabled) {
+  transform: translateY(0px) scale(0.99);
+}
+.bid-button:disabled {
+  background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%);
+  color: rgba(107, 107, 138, 0.8);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* ─── Live Badge ─── */
+.live-badge {
+  background: rgba(255, 51, 102, 0.15);
+  border: 1px solid rgba(255, 51, 102, 0.35);
+  color: #ff3366;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.live-badge::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff3366;
+  margin-right: 5px;
+  animation: livePulse 1.2s ease-in-out infinite;
+}
+
+/* ─── SOLD Stamp ─── */
+.sold-stamp {
+  color: #00ff88;
+  font-family: var(--font-bebas), 'Bebas Neue', sans-serif;
+  font-size: clamp(72px, 18vw, 160px);
+  letter-spacing: 0.06em;
+  border: 6px solid #00ff88;
+  padding: 4px 24px;
+  border-radius: 8px;
+  text-shadow: 0 0 30px rgba(0,255,136,0.7);
+  box-shadow: 0 0 40px rgba(0,255,136,0.3), inset 0 0 20px rgba(0,255,136,0.08);
+  animation: soldStamp 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  transform: rotate(-8deg);
+  opacity: 0;
+}
+.unsold-stamp {
+  color: #ff3366;
+  font-family: var(--font-bebas), 'Bebas Neue', sans-serif;
+  font-size: clamp(56px, 14vw, 120px);
+  letter-spacing: 0.06em;
+  border: 5px solid #ff3366;
+  padding: 4px 20px;
+  border-radius: 8px;
+  text-shadow: 0 0 25px rgba(255,51,102,0.7);
+  box-shadow: 0 0 35px rgba(255,51,102,0.3), inset 0 0 15px rgba(255,51,102,0.08);
+  animation: stampCrack 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  transform: rotate(-12deg);
+  opacity: 0;
+}
+
+/* ─── Stadium Background ─── */
+.stadium-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.stadium-bg::before {
+  content: '';
+  position: absolute;
+  bottom: -10%;
+  left: -20%;
+  width: 140%;
+  height: 60%;
+  background: radial-gradient(ellipse at center bottom, rgba(214, 175, 55, 0.04) 0%, transparent 65%);
+  pointer-events: none;
+}
+.stadium-bg::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(245,197,24,0.4), rgba(0,212,255,0.3), rgba(245,197,24,0.4), transparent);
+  animation: topBarScan 4s linear infinite;
+}
+
+/* ─── Neon Glow Effects ─── */
+.neon-glow-gold {
+  box-shadow: 0 0 25px rgba(245, 197, 24, 0.25);
+  text-shadow: 0 0 12px rgba(245, 197, 24, 0.5), 0 0 30px rgba(245, 197, 24, 0.2);
+}
 .neon-glow-cyan {
   box-shadow: 0 0 25px rgba(0, 212, 255, 0.25);
   text-shadow: 0 0 10px rgba(0, 212, 255, 0.45);
 }
-
 .neon-glow-green {
   box-shadow: 0 0 25px rgba(0, 255, 136, 0.25);
   text-shadow: 0 0 10px rgba(0, 255, 136, 0.45);
 }
-
 .neon-glow-red {
   box-shadow: 0 0 25px rgba(255, 51, 102, 0.25);
   text-shadow: 0 0 10px rgba(255, 51, 102, 0.45);
 }
-
 .neon-glow-purple {
   box-shadow: 0 0 25px rgba(180, 79, 255, 0.25);
   text-shadow: 0 0 10px rgba(180, 79, 255, 0.45);
 }
 
-/* Premium Background Grid & Floating Elements */
+/* ─── Background Grid ─── */
 .bg-grid-pattern {
   background-image: 
     linear-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px),
@@ -106,52 +237,48 @@ body {
   background-size: 50px 50px;
 }
 
+/* ─── Custom Scrollbar ─── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
+::-webkit-scrollbar-thumb { background: rgba(245, 197, 24, 0.15); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(245, 197, 24, 0.3); }
+
+/* ────────────────────────────────────────────────────────────
+   KEYFRAME ANIMATIONS
+   ──────────────────────────────────────────────────────────── */
+
 @keyframes float {
   0% { transform: translate3d(0, 0px, 0) rotate(0deg) scale(1); }
   50% { transform: translate3d(0, -30px, 0) rotate(180deg) scale(1.1); }
   100% { transform: translate3d(0, 0px, 0) rotate(360deg) scale(1); }
 }
+.animate-float { animation: float 25s infinite ease-in-out; will-change: transform; }
 
-.animate-float {
-  animation: float 25s infinite ease-in-out;
-  will-change: transform;
-}
-
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* ─── Keyframe Animations for Premium Arena ─── */
+/* Arena spotlight beams */
 @keyframes arenaBeam {
   0%, 100% { opacity: 0.03; transform: skewX(-8deg) scaleY(1); }
   50%       { opacity: 0.12; transform: skewX(8deg) scaleY(1.15); }
 }
 
+/* Pulsing live indicator */
+@keyframes livePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.8); }
+}
+
+/* Blinking live text */
 @keyframes liveBlink {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.35; }
 }
 
+/* Scrolling news ticker */
 @keyframes tickerScroll {
   0%   { transform: translateX(100%); }
   100% { transform: translateX(-100%); }
 }
 
+/* Auctioneer hammer */
 @keyframes hammerStrike {
   0%   { transform: rotate(0deg); }
   30%  { transform: rotate(-45deg) scale(1.1); }
@@ -160,17 +287,35 @@ body {
   100% { transform: rotate(0deg); }
 }
 
+/* Bid flash */
 @keyframes bidFlash {
   0%   { background: rgba(245, 197, 24, 0); }
   25%  { background: rgba(245, 197, 24, 0.25); }
   100% { background: rgba(245, 197, 24, 0); }
 }
 
-@keyframes soldFlash {
-  0%   { opacity: 0; transform: scale(0.75); }
-  45%  { opacity: 1; transform: scale(1.06); }
-  75%  { transform: scale(0.98); }
-  100% { opacity: 1; transform: scale(1); }
+/* New premium bid pulse */
+@keyframes bidPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(245,197,24, 0.5); }
+  70%  { box-shadow: 0 0 0 14px rgba(245,197,24, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(245,197,24, 0); }
+}
+.animate-bid-pulse { animation: bidPulse 0.6s ease-out; }
+
+/* Price number bounce on update */
+@keyframes priceUpdate {
+  0%   { transform: scale(1); color: inherit; }
+  30%  { transform: scale(1.08); color: var(--av-neon-gold); text-shadow: 0 0 20px rgba(245,197,24,0.8); }
+  100% { transform: scale(1); }
+}
+.animate-price-update { animation: priceUpdate 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+/* Sold overlay stamp */
+@keyframes soldStamp {
+  0%   { transform: scale(2.5) rotate(-8deg); opacity: 0; }
+  60%  { transform: scale(0.9) rotate(-8deg); opacity: 1; }
+  80%  { transform: scale(1.05) rotate(-8deg); }
+  100% { transform: scale(1) rotate(-8deg); opacity: 1; }
 }
 
 @keyframes stampCrack {
@@ -179,7 +324,63 @@ body {
   100% { transform: scale(1) rotate(-12deg); opacity: 1; }
 }
 
-/* ─── Premium stage background layer ─── */
+/* Gold shimmer on bid button */
+@keyframes bidButtonShimmer {
+  0%   { background-position: 0% center; }
+  50%  { background-position: 100% center; }
+  100% { background-position: 0% center; }
+}
+
+/* Top header scanning bar */
+@keyframes topBarScan {
+  0%   { transform: translateX(-100%); opacity: 0; }
+  20%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translateX(100%); opacity: 0; }
+}
+
+/* Team glow pulse for active bidder */
+@keyframes teamGlow {
+  0%, 100% { box-shadow: 0 0 10px currentColor; }
+  50%       { box-shadow: 0 0 25px currentColor, 0 0 50px currentColor; }
+}
+.animate-team-glow { animation: teamGlow 1.5s ease-in-out infinite; }
+
+/* Countdown heartbeat */
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  14%       { transform: scale(1.08); }
+  28%       { transform: scale(1); }
+  42%       { transform: scale(1.05); }
+  70%       { transform: scale(1); }
+}
+.animate-heartbeat { animation: heartbeat 0.8s ease-in-out infinite; }
+
+/* Slide up entry */
+@keyframes slideUp {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+.animate-slide-up { animation: slideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+/* Stadium light beam sweep */
+@keyframes beamSweep {
+  0%, 100% { transform: rotate(-25deg) scaleY(1); opacity: 0.04; }
+  50%       { transform: rotate(25deg) scaleY(1.2); opacity: 0.1; }
+}
+
+/* Horizontal shimmer for LED panels */
+@keyframes ledScan {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+/* Gavel strike */
+.gavel-striking {
+  animation: hammerStrike 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* ─── Arena Stage Elements ─── */
 .arena-bg {
   position: absolute;
   inset: 0;
@@ -187,7 +388,6 @@ body {
   z-index: 0;
   overflow: hidden;
 }
-
 .arena-beam {
   position: absolute;
   top: 0;
@@ -201,18 +401,15 @@ body {
 .arena-beam:nth-child(2) { left: 35%; animation: arenaBeam 11s 1s ease-in-out infinite; width: 50px; background: linear-gradient(180deg, rgba(0, 212, 255, 0.06) 0%, transparent 75%); }
 .arena-beam:nth-child(3) { right: 12%; animation: arenaBeam 9s 3s ease-in-out infinite; }
 .arena-beam:nth-child(4) { right: 38%; animation: arenaBeam 12s 5s ease-in-out infinite; width: 45px; }
-
 .arena-crowd {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  bottom: 0; left: 0; right: 0;
   height: 120px;
   background: linear-gradient(180deg, transparent 0%, rgba(4, 4, 12, 0.95) 100%);
   pointer-events: none;
 }
 
-/* ─── Broadcast News Ticker ─── */
+/* ─── Broadcast Ticker ─── */
 .broadcast-ticker-wrap {
   flex: 1;
   overflow: hidden;
@@ -227,21 +424,52 @@ body {
   display: inline-block;
   animation: tickerScroll 40s linear infinite;
 }
-.ticker-item {
-  margin-right: 64px;
-}
-.ticker-item span {
-  color: var(--av-neon-gold);
-  font-weight: 700;
-}
+.ticker-item { margin-right: 64px; }
+.ticker-item span { color: var(--av-neon-gold); font-weight: 700; }
 
-/* ─── Auctioneer animations ─── */
-.gavel-striking {
-  animation: hammerStrike 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-}
-
-/* ─── Sold & Unsold Overlays ─── */
+/* ─── Stamp Animations ─── */
 .stamp-unsold {
   animation: stampCrack 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
   text-shadow: 0 0 15px rgba(255, 51, 102, 0.4);
 }
+
+/* ─── Premium Hover Card ─── */
+.team-chip {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.team-chip:hover {
+  transform: translateY(-2px);
+}
+.team-chip.bidding-active {
+  animation: teamGlow 1.5s ease-in-out infinite;
+}
+
+/* ─── Timer Ring Color States ─── */
+.timer-green  { stroke: #00ff88; filter: drop-shadow(0 0 6px rgba(0,255,136,0.6)); }
+.timer-yellow { stroke: #f5c518; filter: drop-shadow(0 0 6px rgba(245,197,24,0.6)); }
+.timer-orange { stroke: #ff9100; filter: drop-shadow(0 0 8px rgba(255,145,0,0.7)); }
+.timer-red    { stroke: #ff3366; filter: drop-shadow(0 0 10px rgba(255,51,102,0.8)); }
+
+/* ─── IPL Hero Spotlight ─── */
+.hero-spotlight {
+  position: absolute;
+  top: -20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(ellipse at top, rgba(245,197,24,0.12) 0%, transparent 65%);
+  pointer-events: none;
+}
+.hero-beam {
+  position: absolute;
+  top: 0;
+  width: 120px;
+  height: 80%;
+  transform-origin: top center;
+  pointer-events: none;
+}
+.hero-beam:nth-child(1) { left: 10%; background: linear-gradient(180deg, rgba(245,197,24,0.10) 0%, transparent 100%); animation: beamSweep 7s ease-in-out infinite; }
+.hero-beam:nth-child(2) { left: 30%; width: 80px; background: linear-gradient(180deg, rgba(0,212,255,0.07) 0%, transparent 100%); animation: beamSweep 9s 2s ease-in-out infinite; }
+.hero-beam:nth-child(3) { right: 10%; background: linear-gradient(180deg, rgba(245,197,24,0.10) 0%, transparent 100%); animation: beamSweep 8s 1s ease-in-out infinite; }
+.hero-beam:nth-child(4) { right: 28%; width: 60px; background: linear-gradient(180deg, rgba(180,79,255,0.06) 0%, transparent 100%); animation: beamSweep 11s 4s ease-in-out infinite; }
