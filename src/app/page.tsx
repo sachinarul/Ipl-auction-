@@ -490,56 +490,6 @@ export default function LandingPage() {
           )}
         </AnimatePresence>
 
-        {/* Nominated Marquee Draft Picks Showcase */}
-        <div className="w-full mt-16 pt-8 border-t border-border-custom">
-          <div className="text-center mb-8">
-            <span className="text-[10px] text-neon-gold uppercase font-black tracking-widest block font-barlow">🌟 HOT DRAFT MARQUEE PICKS</span>
-            <h3 className="text-xl font-black text-white uppercase mt-1 tracking-wider">AVAILABLE IN 2025 MEGA DRAFT POOL</h3>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
-            {[
-              { name: 'Rishabh Pant', role: '🧤 Wicket-Keeper (WK)', flag: '🇮🇳', ovr: 95, base: '₹2.00 Cr', color: 'var(--av-neon-gold)' },
-              { name: 'Jasprit Bumrah', role: '🎳 Bowler (BOWL)', flag: '🇮🇳', ovr: 99, base: '₹2.00 Cr', color: 'var(--av-neon-cyan)' },
-              { name: 'Jos Buttler', role: '🏏 Batsman (BAT)', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', ovr: 92, base: '₹2.00 Cr', color: 'var(--av-neon-purple)' },
-              { name: 'Heinrich Klaasen', role: '🧤 Wicket-Keeper (WK)', flag: '🇿🇦', ovr: 91, base: '₹2.00 Cr', color: 'var(--av-neon-green)' }
-            ].map((p, idx) => (
-              <motion.div
-                key={p.name}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1, duration: 0.4 }}
-                whileHover={{ y: -8, scale: 1.02 }}
-                className="glass-panel p-4 rounded-2xl flex flex-col justify-between relative overflow-hidden group cursor-pointer border border-white/5 bg-void/35"
-              >
-                <div 
-                  className="absolute top-0 right-0 w-16 h-16 pointer-events-none opacity-20" 
-                  style={{ background: `radial-gradient(circle, ${p.color} 0%, transparent 70%)` }}
-                />
-                
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-2xl filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] select-none">{p.flag}</span>
-                  <span 
-                    className="text-[9px] font-black px-2 py-0.5 rounded uppercase border font-rajdhani"
-                    style={{ borderColor: `${p.color}40`, color: p.color, backgroundColor: `${p.color}10` }}
-                  >
-                    OVR {p.ovr}
-                  </span>
-                </div>
-
-                <div>
-                  <h4 className="font-extrabold text-white text-xs uppercase tracking-wide truncate group-hover:text-neon-gold transition-colors duration-300 font-barlow">{p.name}</h4>
-                  <span className="text-[9px] text-av-muted font-bold block mt-0.5 uppercase tracking-wider">{p.role}</span>
-                </div>
-
-                <div className="border-t border-border-custom/50 pt-2.5 mt-3 flex justify-between items-center text-[10px] font-rajdhani">
-                  <span className="text-av-muted uppercase font-bold">Base Price</span>
-                  <span className="font-extrabold text-neon-green">{p.base}</span>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-
         {/* Feature Highlights Footer */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-16 pt-8 border-t border-border-custom w-full">
           <div className="flex items-start space-x-3">

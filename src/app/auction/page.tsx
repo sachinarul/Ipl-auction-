@@ -1196,7 +1196,6 @@ export default function AuctionArena() {
         [
           { key: 'broadcast', label: 'Broadcast 📺' },
           { key: 'stage',     label: 'Stage View 🏟️' },
-          { key: 'auctioneer', label: 'Auctioneer 🎙' },
           { key: 'spotlight',  label: 'Spotlight 💡' },
           { key: 'teams',      label: 'Franchises 👥' },
         ] as const
@@ -1539,6 +1538,116 @@ export default function AuctionArena() {
           </div>
         </div>
       </motion.div>
+    );
+  };
+
+  const renderPremiumBiddingPanel = () => {
+    const userTeam = teams.find((t) => t.id === userTeamId);
+    return (
+      <div className="glass-panel rounded-3xl p-6 flex flex-col justify-between border border-white/5 relative overflow-hidden bg-gradient-to-b from-void/45 to-transparent w-full h-full min-h-[280px]">
+        <div className="absolute top-0 inset-x-0 h-full bg-[radial-gradient(circle_at_top,_rgba(214,175,55,0.06)_0%,_transparent_65%)] pointer-events-none" />
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex flex-col">
+            <span className="text-xs uppercase font-extrabold tracking-wider text-av-muted flex items-center space-x-1">
+              <Circle className={`h-2.5 w-2.5 ${paused ? 'bg-neon-red' : 'bg-neon-gold'} rounded-full animate-pulse`} />
+              <span>{paused ? 'PAUSED' : 'LIVE'}</span>
+            </span>
+            <span className="text-[9px] text-av-muted font-bold mt-1 uppercase tracking-wider">
+              Auction Timer: {timerDuration}s
+            </span>
+          </div>
+
+          {/* Countdown Gauge */}
+          <div className="relative flex items-center justify-center w-12 h-12">
+            <svg className="w-full h-full transform -rotate-90">
+              <circle cx="24" cy="24" r="20" className="stroke-white/5 fill-transparent" strokeWidth="2.5" />
+              <circle
+                cx="24"
+                cy="24"
+                r="20"
+                className={`fill-transparent transition-[stroke-dashoffset] duration-200 ease-out ${
+                  countdown <= 3 && phase === 'BIDDING' ? 'stroke-neon-red animate-pulse' : 'stroke-neon-cyan'
+                }`}
+                strokeWidth="2.5"
+                strokeDasharray={2 * Math.PI * 20}
+                strokeDashoffset={2 * Math.PI * 20 * (1 - (phase === 'RESOLVING' ? 1.5 : countdown) / (phase === 'RESOLVING' ? 1.5 : timerDuration))}
+              />
+            </svg>
+            <span className={`absolute text-sm font-black ${countdown <= 3 && phase === 'BIDDING' ? 'text-neon-red animate-pulse' : 'text-white'}`}>
+              {phase === 'RESOLVING' ? '!' : countdown}
+            </span>
+          </div>
+        </div>
+
+        {/* Current Price */}
+        <div className="text-center my-4">
+          <span className="text-[9px] uppercase font-bold tracking-widest text-av-muted block mb-1">
+            {currentBidderId ? 'Current Bid' : 'Base Price'}
+          </span>
+          <h2 className="text-4xl font-black text-white font-bebas tracking-wide neon-glow-gold">
+            {currentBidderId ? formatCr(currentBid) : `₹${currentPlayer?.basePrice.toFixed(2) || '0.00'} Cr`}
+          </h2>
+          {activeBidder ? (
+            <div className="inline-flex items-center space-x-1 px-3 py-0.5 rounded-full text-xs font-bold mt-2 bg-white/5 border border-white/10 text-white">
+              <span>{activeBidder.emoji}</span>
+              <span>{activeBidder.name}</span>
+            </div>
+          ) : (
+            <div className="inline-flex items-center space-x-1 px-3 py-0.5 rounded-full text-xs font-bold mt-2 bg-white/5 border border-white/10 text-av-muted">
+              <span>No active bid</span>
+            </div>
+          )}
+        </div>
+
+        {(phase === 'BIDDING' || phase === 'RESOLVING') && !paused && userTeamId && currentPlayer ? (
+          <div>
+            {(() => {
+              const nextBidAmount = currentBidderId ? getNextBid(currentBid) : currentBid;
+              const isHighestBidder = currentBidderId === userTeamId;
+              const hasPurse = userTeam ? userTeam.purse >= nextBidAmount : false;
+              const isRosterFull = userTeam ? userTeam.squad.length >= 25 : false;
+              const isOverseasQuotaFull = userTeam && currentPlayer.overseas
+                ? userTeam.squad.filter(p => p.overseas).length >= 8
+                : false;
+
+              let btnText = `BID ${formatCrShort(nextBidAmount)}`;
+              let isDisabled = false;
+
+              if (isHighestBidder) {
+                btnText = `YOU LEAD`;
+                isDisabled = true;
+              } else if (isRosterFull) {
+                btnText = `ROSTER FULL`;
+                isDisabled = true;
+              } else if (isOverseasQuotaFull) {
+                btnText = `OVERSEAS FULL`;
+                isDisabled = true;
+              } else if (!hasPurse) {
+                btnText = `NO BUDGET`;
+                isDisabled = true;
+              }
+
+              return (
+                <button
+                  onClick={() => placeBid()}
+                  disabled={isDisabled}
+                  className={`w-full py-4 rounded-2xl text-sm font-black tracking-widest uppercase transition-all duration-300 shadow-lg ${
+                    isDisabled
+                      ? 'bg-glass border border-border-custom text-av-muted cursor-not-allowed opacity-60'
+                      : 'bg-gradient-to-r from-neon-gold to-yellow-500 text-midnight hover:shadow-[0_0_20px_rgba(245,197,24,0.3)] hover:scale-[1.02] cursor-pointer'
+                  }`}
+                >
+                  {btnText}
+                </button>
+              );
+            })()}
+          </div>
+        ) : (
+          <div className="text-center py-4 bg-void/50 border border-border-custom rounded-2xl text-xs text-av-muted font-bold">
+            {paused ? 'Paused' : 'Bidding Closed'}
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -3039,9 +3148,8 @@ export default function AuctionArena() {
           <div className="flex-1 min-h-[420px] grid grid-cols-12 gap-4 items-stretch">
             {cameraView === 'broadcast' && (
               <>
-                <div className="col-span-12 lg:col-span-6 glass-panel rounded-3xl p-6 flex flex-col items-center justify-center relative overflow-hidden bg-gradient-to-b from-void/45 to-transparent border border-white/5">
-                  <div className="absolute top-0 inset-x-0 h-full bg-[radial-gradient(circle_at_top,_rgba(214,175,55,0.06)_0%,_transparent_65%)] pointer-events-none" />
-                  {renderAuctioneer('md')}
+                <div className="col-span-12 lg:col-span-6 flex flex-col gap-4">
+                  {renderPremiumBiddingPanel()}
                 </div>
 
                 <div className="col-span-12 lg:col-span-6 flex flex-col gap-4">
@@ -3052,15 +3160,15 @@ export default function AuctionArena() {
 
             {cameraView === 'stage' && (
               <div className="col-span-12 glass-panel rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(214,175,55,0.07)_0%,_transparent_75%)] bg-void/50 border border-white/5">
-                <div className="flex flex-col md:flex-row items-center justify-around gap-8 my-auto">
-                  <div className="w-full md:w-5/12 glass-panel p-4 rounded-2xl border border-white/5 bg-void/40">
+                <div className="flex flex-col md:flex-row items-center justify-around gap-8 my-auto w-full">
+                  <div className="w-full md:w-6/12 glass-panel p-6 rounded-2xl border border-white/5 bg-void/40">
                     <span className="text-[8px] font-black uppercase text-neon-cyan tracking-wider block font-barlow mb-2">Stage LED Screen Left</span>
                     {currentPlayer ? (
-                      <div className="flex items-center gap-3">
-                        <span className="text-3xl">{currentPlayer.flag}</span>
+                      <div className="flex items-center gap-4">
+                        <span className="text-4xl">{currentPlayer.flag}</span>
                         <div>
-                          <h4 className="font-black text-white text-sm uppercase font-barlow">{currentPlayer.name}</h4>
-                          <span className="text-[10px] text-av-muted font-bold block">{currentPlayer.role} • OVR {currentPlayer.overall}</span>
+                          <h4 className="font-black text-white text-base uppercase font-barlow">{currentPlayer.name}</h4>
+                          <span className="text-xs text-av-muted font-bold block">{currentPlayer.role} • OVR {currentPlayer.overall}</span>
                         </div>
                       </div>
                     ) : (
@@ -3068,36 +3176,20 @@ export default function AuctionArena() {
                     )}
                   </div>
 
-                  <div className="w-full md:w-2/12 flex justify-center">
-                    {renderAuctioneer('md')}
-                  </div>
-
-                  <div className="w-full md:w-5/12 glass-panel p-4 rounded-2xl border border-white/5 bg-void/40 text-center">
+                  <div className="w-full md:w-6/12 glass-panel p-6 rounded-2xl border border-white/5 bg-void/40 text-center">
                     <span className="text-[8px] font-black uppercase text-neon-gold tracking-wider block font-barlow mb-2">Stage LED Screen Right</span>
-                    <span className="text-[10px] uppercase text-av-muted font-bold block leading-none mb-1">Current Price</span>
-                    <span className="text-2xl font-black text-neon-green font-bebas tracking-wide">
+                    <span className="text-xs uppercase text-av-muted font-bold block leading-none mb-1">Current Price</span>
+                    <span className="text-3xl font-black text-neon-green font-bebas tracking-wide">
                       {currentBidderId ? formatCr(currentBid) : `₹${currentPlayer?.basePrice.toFixed(2) || '0.00'} Cr`}
                     </span>
                     {activeBidder && (
-                      <span className="text-[10px] text-white block mt-1 font-bold">by {activeBidder.name}</span>
+                      <span className="text-xs text-white block mt-1 font-bold">by {activeBidder.name}</span>
                     )}
                   </div>
                 </div>
 
-                <div className="text-center text-[10px] text-av-muted font-bold uppercase tracking-widest border-t border-white/5 pt-3">
+                <div className="text-center text-[10px] text-av-muted font-bold uppercase tracking-widest border-t border-white/5 pt-3 mt-6">
                   🏟️ Stadium Auditorium Center Stage Feed
-                </div>
-              </div>
-            )}
-
-            {cameraView === 'auctioneer' && (
-              <div className="col-span-12 glass-panel rounded-3xl p-6 flex flex-col items-center justify-center relative overflow-hidden bg-gradient-to-b from-slate-900/60 to-transparent border border-white/5">
-                <div className="absolute top-0 inset-x-0 h-full bg-[radial-gradient(circle_at_top,_rgba(214,175,55,0.12)_0%,_transparent_55%)] pointer-events-none" />
-                <div className="scale-125 my-auto">
-                  {renderAuctioneer('lg')}
-                </div>
-                <div className="mt-8 text-center bg-void/65 border border-white/5 rounded-full px-4 py-1.5 text-[9px] font-black text-av-muted uppercase tracking-widest">
-                  🎙️ Auctioneer Close-up Microphone Angle Feed
                 </div>
               </div>
             )}
@@ -3205,102 +3297,129 @@ export default function AuctionArena() {
           {/* Bid controllers panel + Chat (for non-spotlight views) */}
           {cameraView !== 'spotlight' && (
             <div className="grid grid-cols-12 gap-4 mt-2">
-              <div className="col-span-12 lg:col-span-6 glass-panel rounded-2xl p-5 flex flex-col justify-between">
-                <div className="flex justify-between items-center mb-3">
-                  <div className="flex items-center space-x-1.5 text-[10px] font-black uppercase text-av-muted font-barlow">
-                    <span className={`h-2 w-2 rounded-full ${paused ? 'bg-neon-red' : 'bg-neon-green'} animate-pulse`} />
-                    <span>{paused ? 'PAUSED' : 'LIVE COUNTDOWN'}</span>
-                  </div>
-                  
-                  <div className="bg-void/85 border border-white/10 px-3 py-1 rounded-xl flex items-center gap-1.5">
-                    <span className="text-[8px] font-black text-av-muted uppercase font-barlow">Timer</span>
-                    <span className={`text-sm font-black font-bebas ${countdown <= 3 ? 'text-neon-red animate-pulse' : 'text-white'}`}>
-                      {countdown}s
-                    </span>
-                  </div>
-                </div>
-
-                <div className="text-center my-3">
-                  <span className="text-[9px] uppercase font-bold tracking-widest text-av-muted block mb-0.5">
-                    {currentBidderId ? 'Current Bid' : 'Base Price'}
-                  </span>
-                  <h3 className="text-3xl font-black text-white font-bebas tracking-wide">
-                    {currentBidderId ? formatCr(currentBid) : `₹${currentPlayer?.basePrice.toFixed(2) || '0.00'} Cr`}
-                  </h3>
-                </div>
-
-                {(phase === 'BIDDING' || phase === 'RESOLVING') && !paused && userTeamId ? (
-                  <div className="flex gap-2">
-                    {(() => {
-                      const nextBidAmount = currentBidderId ? getNextBid(currentBid) : currentBid;
-                      const isHighestBidder = currentBidderId === userTeamId;
-                      const hasPurse = userTeam ? userTeam.purse >= nextBidAmount : false;
-                      const isRosterFull = userTeam ? userTeam.squad.length >= 25 : false;
-                      const isOverseasQuotaFull = userTeam && currentPlayer?.overseas
-                        ? userTeam.squad.filter(p => p.overseas).length >= 8
-                        : false;
-
-                      let btnText = `BID ${formatCrShort(nextBidAmount)}`;
-                      let isDisabled = false;
-
-                      if (isHighestBidder) {
-                        btnText = `YOU LEAD`;
-                        isDisabled = true;
-                      } else if (isRosterFull) {
-                        btnText = `FULL`;
-                        isDisabled = true;
-                      } else if (isOverseasQuotaFull) {
-                        btnText = `OVERSEAS`;
-                        isDisabled = true;
-                      } else if (!hasPurse) {
-                        btnText = `NO BUDGET`;
-                        isDisabled = true;
-                      }
-
-                      return (
-                        <button
-                          onClick={() => placeBid()}
-                          disabled={isDisabled}
-                          className={`w-full py-3 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all duration-200 shadow-md ${
-                            isDisabled
-                              ? 'bg-glass border border-border-custom text-av-muted cursor-not-allowed opacity-60'
-                              : 'bg-gradient-to-r from-neon-gold to-yellow-500 text-midnight hover:shadow-[0_0_15px_rgba(245,197,24,0.3)] hover:scale-[1.02] cursor-pointer'
-                          }`}
-                        >
-                          {btnText}
-                        </button>
-                      );
-                    })()}
-                  </div>
-                ) : (
-                  <div className="text-center py-2 bg-void/50 border border-border-custom rounded-xl text-xs text-av-muted font-bold">
-                    {paused ? 'Paused' : 'Bidding Closed'}
-                  </div>
-                )}
-              </div>
-
-              <div className="col-span-12 lg:col-span-6 glass-panel rounded-2xl p-5 flex flex-col justify-between max-h-[180px]">
-                <span className="text-[10px] font-black text-av-muted uppercase tracking-wider block font-barlow border-b border-white/5 pb-1 mb-2">
-                  🎙️ Live Commentary Feed
-                </span>
-                
-                <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 text-[11px] font-rajdhani">
-                  {chatMessages.map((msg: any) => (
-                    <div key={msg.id} className="flex items-center gap-1.5 leading-tight">
-                      <span className="text-xs shrink-0">{msg.emoji}</span>
-                      {msg.isSystem ? (
-                        <span className="text-neon-cyan font-bold uppercase text-[9px]">{msg.text}</span>
-                      ) : (
-                        <span>
-                          <span className="font-black text-white uppercase">{msg.sender}: </span>
-                          <span className="text-av-muted">{msg.text}</span>
+              {cameraView !== 'broadcast' ? (
+                <>
+                  <div className="col-span-12 lg:col-span-6 glass-panel rounded-2xl p-5 flex flex-col justify-between">
+                    <div className="flex justify-between items-center mb-3">
+                      <div className="flex items-center space-x-1.5 text-[10px] font-black uppercase text-av-muted font-barlow">
+                        <span className={`h-2 w-2 rounded-full ${paused ? 'bg-neon-red' : 'bg-neon-green'} animate-pulse`} />
+                        <span>{paused ? 'PAUSED' : 'LIVE COUNTDOWN'}</span>
+                      </div>
+                      
+                      <div className="bg-void/85 border border-white/10 px-3 py-1 rounded-xl flex items-center gap-1.5">
+                        <span className="text-[8px] font-black text-av-muted uppercase font-barlow">Timer</span>
+                        <span className={`text-sm font-black font-bebas ${countdown <= 3 ? 'text-neon-red animate-pulse' : 'text-white'}`}>
+                          {countdown}s
                         </span>
-                      )}
+                      </div>
                     </div>
-                  ))}
-                  <div ref={chatEndRef} />
+
+                    <div className="text-center my-3">
+                      <span className="text-[9px] uppercase font-bold tracking-widest text-av-muted block mb-0.5">
+                        {currentBidderId ? 'Current Bid' : 'Base Price'}
+                      </span>
+                      <h3 className="text-3xl font-black text-white font-bebas tracking-wide">
+                        {currentBidderId ? formatCr(currentBid) : `₹${currentPlayer?.basePrice.toFixed(2) || '0.00'} Cr`}
+                      </h3>
+                    </div>
+
+                    {(phase === 'BIDDING' || phase === 'RESOLVING') && !paused && userTeamId ? (
+                      <div className="flex gap-2">
+                        {(() => {
+                          const nextBidAmount = currentBidderId ? getNextBid(currentBid) : currentBid;
+                          const isHighestBidder = currentBidderId === userTeamId;
+                          const hasPurse = userTeam ? userTeam.purse >= nextBidAmount : false;
+                          const isRosterFull = userTeam ? userTeam.squad.length >= 25 : false;
+                          const isOverseasQuotaFull = userTeam && currentPlayer?.overseas
+                            ? userTeam.squad.filter(p => p.overseas).length >= 8
+                            : false;
+
+                          let btnText = `BID ${formatCrShort(nextBidAmount)}`;
+                          let isDisabled = false;
+
+                          if (isHighestBidder) {
+                            btnText = `YOU LEAD`;
+                            isDisabled = true;
+                          } else if (isRosterFull) {
+                            btnText = `FULL`;
+                            isDisabled = true;
+                          } else if (isOverseasQuotaFull) {
+                            btnText = `OVERSEAS`;
+                            isDisabled = true;
+                          } else if (!hasPurse) {
+                            btnText = `NO BUDGET`;
+                            isDisabled = true;
+                          }
+
+                          return (
+                            <button
+                              onClick={() => placeBid()}
+                              disabled={isDisabled}
+                              className={`w-full py-3 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all duration-200 shadow-md ${
+                                isDisabled
+                                  ? 'bg-glass border border-border-custom text-av-muted cursor-not-allowed opacity-60'
+                                  : 'bg-gradient-to-r from-neon-gold to-yellow-500 text-midnight hover:shadow-[0_0_15px_rgba(245,197,24,0.3)] hover:scale-[1.02] cursor-pointer'
+                              }`}
+                            >
+                              {btnText}
+                            </button>
+                          );
+                        })()}
+                      </div>
+                    ) : (
+                      <div className="text-center py-2 bg-void/50 border border-border-custom rounded-xl text-xs text-av-muted font-bold">
+                        {paused ? 'Paused' : 'Bidding Closed'}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="col-span-12 lg:col-span-6 glass-panel rounded-2xl p-5 flex flex-col justify-between max-h-[180px]">
+                    <span className="text-[10px] font-black text-av-muted uppercase tracking-wider block font-barlow border-b border-white/5 pb-1 mb-2">
+                      🎙️ Live Commentary Feed
+                    </span>
+                    
+                    <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 text-[11px] font-rajdhani">
+                      {chatMessages.map((msg: any) => (
+                        <div key={msg.id} className="flex items-center gap-1.5 leading-tight">
+                          <span className="text-xs shrink-0">{msg.emoji}</span>
+                          {msg.isSystem ? (
+                            <span className="text-neon-cyan font-bold uppercase text-[9px]">{msg.text}</span>
+                          ) : (
+                            <span>
+                              <span className="font-black text-white uppercase">{msg.sender}: </span>
+                              <span className="text-av-muted">{msg.text}</span>
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                      <div ref={chatEndRef} />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="col-span-12 glass-panel rounded-2xl p-5 flex flex-col justify-between min-h-[120px] max-h-[180px]">
+                  <span className="text-[10px] font-black text-av-muted uppercase tracking-wider block font-barlow border-b border-white/5 pb-1 mb-2">
+                    🎙️ Live Commentary Feed
+                  </span>
+                  
+                  <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 text-[11px] font-rajdhani">
+                    {chatMessages.map((msg: any) => (
+                      <div key={msg.id} className="flex items-center gap-1.5 leading-tight">
+                        <span className="text-xs shrink-0">{msg.emoji}</span>
+                        {msg.isSystem ? (
+                          <span className="text-neon-cyan font-bold uppercase text-[9px]">{msg.text}</span>
+                        ) : (
+                          <span>
+                            <span className="font-black text-white uppercase">{msg.sender}: </span>
+                            <span className="text-av-muted">{msg.text}</span>
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                    <div ref={chatEndRef} />
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
         </div>
