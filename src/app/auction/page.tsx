@@ -194,6 +194,9 @@ export default function AuctionArena() {
   const [modalRoleFilter, setModalRoleFilter] = useState<'ALL' | PlayerRole>('ALL');
   const [viewedTeamId, setViewedTeamId] = useState<string>('');
 
+  // Track last synced team ID to prevent draft lineup from getting overwritten during live auction updates
+  const lastSyncedTeamIdRef = useRef<string>('');
+
   const isOwnTeam = viewedTeamId === userTeamId || !viewedTeamId;
 
   // WebRTC configuration
@@ -632,6 +635,19 @@ export default function AuctionArena() {
     if (!targetTeamId) return;
 
     const submission = submittedTeams[targetTeamId];
+    
+    // Check if we need to sync:
+    // 1. Target team has changed (viewed team changed or initial load)
+    // 2. Submission status changed (e.g. newly marked as submitted on server)
+    const isTeamChanged = targetTeamId !== lastSyncedTeamIdRef.current;
+    const isSubmittedStatusChanged = submission && (!!submission.submitted !== submittedLocal);
+
+    if (!isTeamChanged && !isSubmittedStatusChanged) {
+      return;
+    }
+
+    lastSyncedTeamIdRef.current = targetTeamId;
+
     if (submission) {
       const xi = Array(11).fill(null);
       if (submission.playingXI) {
@@ -674,7 +690,21 @@ export default function AuctionArena() {
       setViceCaptainId(null);
     }
     setSubmittedLocal(false);
-  }, [submittedTeams, viewedTeamId, userTeamId, roomCode]);
+  }, [submittedTeams, viewedTeamId, userTeamId, roomCode, submittedLocal, isOwnTeam]);
+
+  // Auto-save draft lineup to localStorage whenever changes occur
+  useEffect(() => {
+    const targetTeamId = viewedTeamId || userTeamId;
+    if (!targetTeamId || !isOwnTeam || submittedLocal) return;
+
+    const draftKey = `av_lineup_draft_${roomCode || ''}_${targetTeamId}`;
+    localStorage.setItem(draftKey, JSON.stringify({
+      playingXI,
+      impactPlayer,
+      captainId,
+      viceCaptainId
+    }));
+  }, [playingXI, impactPlayer, captainId, viceCaptainId, viewedTeamId, userTeamId, roomCode, isOwnTeam, submittedLocal]);
 
   const boardTeam = teams.find((t) => t.id === (viewedTeamId || userTeamId));
   const boardSquad = boardTeam ? boardTeam.squad : [];
