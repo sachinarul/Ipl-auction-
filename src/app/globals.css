@@ -44,8 +44,20 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-outfit), system-ui, -apple-system, sans-serif;
+  font-family: var(--font-outfit), 'Outfit', system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Global Heading Styles for Sports Broadcast Feel */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-barlow), 'Barlow Condensed', sans-serif;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-weight: 800;
 }
 
 /* Custom Fonts */
