@@ -1690,8 +1690,8 @@ export default function AuctionArena() {
               </span>
             </div>
 
-            {/* Gauge Circle + Price */}
-            <div className="flex flex-col sm:flex-row items-center justify-around my-6 gap-6">
+            {/* Desktop Only: Original Overall Gauge + Price Box */}
+            <div className="hidden lg:flex flex-col sm:flex-row items-center justify-around my-6 gap-6 w-full">
               <div className="relative flex items-center justify-center w-36 h-36">
                 <svg className="w-full h-full transform -rotate-90">
                   <circle cx="72" cy="72" r="64" className="stroke-void fill-transparent" strokeWidth="10" />
@@ -1737,7 +1737,6 @@ export default function AuctionArena() {
               {/* Price */}
               <div className="space-y-4 text-center sm:text-left">
                 <div className="glass-panel px-6 py-2.5 rounded-xl border border-white/5 bg-void/30">
-                  {/* V3: show 'Base Price' label when no one has bid yet */}
                   <div className="text-[10px] text-av-muted uppercase font-bold tracking-wider">
                     {currentBidderId ? 'Current Bid' : 'Base Price'}
                   </div>
@@ -1753,13 +1752,114 @@ export default function AuctionArena() {
                       {currentPlayer.capped ? ' Capped 🇮🇳' : ' Uncapped ⭐️'}
                     </span>
                   </div>
-                  <div className="w-px bg-border-custom" />
-                  <div className="text-xs">
-                    <span className="text-av-muted block font-semibold">Popularity</span>
-                    <span className="font-bold text-neon-cyan mt-0.5 block">
-                      {currentPlayer.popularity}% Hype
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile Only: Interactive Bidding Panel inside Card (Replacing OVR Circle and Popularity) */}
+            <div className="flex lg:hidden flex-col items-stretch w-full gap-4 my-4 p-4 rounded-2xl bg-void/50 border border-white/5">
+              {/* Live countdown & Timer */}
+              <div className="flex justify-between items-center pb-3 border-b border-white/5">
+                <div className="flex items-center space-x-1.5 text-[10px] font-black uppercase text-av-muted">
+                  <span className={`h-2 w-2 rounded-full ${paused ? 'bg-neon-red' : 'bg-neon-green'} animate-pulse`} />
+                  <span>{paused ? 'PAUSED' : 'LIVE COUNTDOWN'}</span>
+                </div>
+                
+                <div className="bg-void border border-white/10 px-2.5 py-0.5 rounded-lg flex items-center gap-1">
+                  <span className="text-[8px] font-black text-av-muted uppercase font-barlow">Timer</span>
+                  <span className={`text-xs font-black ${countdown <= 3 ? 'text-neon-red animate-pulse' : 'text-white'}`}>
+                    {countdown}s
+                  </span>
+                </div>
+              </div>
+
+              {/* Price & Bid Leader Details */}
+              <div className="text-center py-2">
+                <span className="text-[9px] uppercase font-bold tracking-widest text-av-muted block mb-0.5">
+                  {currentBidderId ? 'Current Bid' : 'Base Price'}
+                </span>
+                <h3 className="text-3xl font-black text-white font-bebas tracking-wide neon-glow-gold">
+                  {currentBidderId ? formatCr(currentBid) : `₹${currentPlayer.basePrice.toFixed(2)} Cr`}
+                </h3>
+
+                {/* Who is bidding */}
+                <div className="mt-2 text-xs font-extrabold flex items-center justify-center gap-1.5">
+                  <span className="text-av-muted text-[10px] uppercase font-rajdhani">Leader:</span>
+                  {activeBidder ? (
+                    <span 
+                      style={{ color: activeBidder.primaryColor }}
+                      className="px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 inline-flex items-center space-x-1.5"
+                    >
+                      <span className="text-sm shrink-0">{activeBidder.emoji}</span>
+                      <span className="uppercase font-barlow tracking-wider">{activeBidder.name}</span>
+                      {currentBidderId === userTeamId && (
+                        <span className="ml-1 text-[8px] px-1 bg-neon-gold text-midnight rounded font-black">YOU</span>
+                      )}
                     </span>
-                  </div>
+                  ) : (
+                    <span className="text-av-muted italic text-[11px] font-rajdhani">No active bids</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Bid buttons */}
+              {(phase === 'BIDDING' || phase === 'RESOLVING') && !paused && userTeamId ? (
+                <div>
+                  {(() => {
+                    const userTeam = teams.find((t) => t.id === userTeamId);
+                    const nextBidAmount = currentBidderId ? getNextBid(currentBid) : currentBid;
+                    const isHighestBidder = currentBidderId === userTeamId;
+                    const hasPurse = userTeam ? userTeam.purse >= nextBidAmount : false;
+                    const isRosterFull = userTeam ? userTeam.squad.length >= 25 : false;
+                    const isOverseasQuotaFull = userTeam && currentPlayer.overseas
+                      ? userTeam.squad.filter(p => p.overseas).length >= 8
+                      : false;
+
+                    let btnText = `BID ${formatCrShort(nextBidAmount)}`;
+                    let isDisabled = false;
+
+                    if (isHighestBidder) {
+                      btnText = `YOU LEAD`;
+                      isDisabled = true;
+                    } else if (isRosterFull) {
+                      btnText = `FULL`;
+                      isDisabled = true;
+                    } else if (isOverseasQuotaFull) {
+                      btnText = `OVERSEAS`;
+                      isDisabled = true;
+                    } else if (!hasPurse) {
+                      btnText = `NO BUDGET`;
+                      isDisabled = true;
+                    }
+
+                    return (
+                      <button
+                        onClick={() => placeBid()}
+                        disabled={isDisabled}
+                        className={`w-full py-3.5 rounded-xl text-xs font-black tracking-widest uppercase transition-all duration-200 shadow-md ${
+                          isDisabled
+                            ? 'bg-glass border border-border-custom text-av-muted cursor-not-allowed opacity-60'
+                            : 'bg-gradient-to-r from-neon-gold to-yellow-500 text-midnight hover:shadow-[0_0_15px_rgba(245,197,24,0.3)] hover:scale-[1.02] cursor-pointer'
+                        }`}
+                      >
+                        {btnText}
+                      </button>
+                    );
+                  })()}
+                </div>
+              ) : (
+                <div className="text-center py-3 bg-void/50 border border-border-custom rounded-xl text-xs text-av-muted font-bold">
+                  {paused ? 'Paused' : 'Bidding Closed'}
+                </div>
+              )}
+
+              {/* Stats Footer inside Bidding Box */}
+              <div className="flex justify-center border-t border-white/5 pt-3 mt-1">
+                <div className="text-xs text-center">
+                  <span className="text-av-muted block font-semibold">Capped Status</span>
+                  <span className="font-bold text-white mt-0.5 block">
+                    {currentPlayer.capped ? ' Capped 🇮🇳' : ' Uncapped ⭐️'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -2987,7 +3087,7 @@ export default function AuctionArena() {
           </div>
 
           {/* Mobile Bottom Fixed Bidding Panel */}
-          {currentPlayer && (phase === 'BIDDING' || phase === 'RESOLVING' || phase === 'SOLD' || phase === 'UNSOLD') && (
+          {currentPlayer && mobileTab !== 'spotlight' && (phase === 'BIDDING' || phase === 'RESOLVING' || phase === 'SOLD' || phase === 'UNSOLD') && (
             <div className="lg:hidden fixed bottom-[56px] left-0 right-0 z-40 bg-void/95 border-t border-border-custom p-3 flex flex-col gap-2 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] backdrop-blur-md">
               <div className="flex justify-between items-center text-xs">
                 <div className="flex items-center space-x-2">
