@@ -392,8 +392,40 @@ export default function FranchiseHQ() {
     setSelectedForSwap(null);
   };
 
+  const isPlayerSelectable = (player: Player) => {
+    if (assigningSlot === null) return { allowed: true };
+
+    if (assigningSlot !== 'impact') {
+      const currentXI = [...playingXI];
+      const replacedPlayer = currentXI[assigningSlot as number];
+      const currentOSCount = currentXI.filter(p => p !== null && p.overseas).length;
+      const newOSCount = currentOSCount - (replacedPlayer?.overseas ? 1 : 0) + (player.overseas ? 1 : 0);
+      if (newOSCount > 4) {
+        return { allowed: false, reason: "Maximum 4 Overseas players are allowed in the Playing XI." };
+      }
+      if (newOSCount === 4 && impactPlayer && impactPlayer.overseas) {
+        return { allowed: false, reason: "Cannot have 4 Overseas players in Playing XI while an Overseas Impact Player is selected." };
+      }
+    }
+
+    if (assigningSlot === 'impact') {
+      const currentOSCount = playingXI.filter(p => p !== null && p.overseas).length;
+      if (currentOSCount >= 4 && player.overseas) {
+        return { allowed: false, reason: "Impact Player cannot be Overseas because Playing XI already contains 4 Overseas players." };
+      }
+    }
+
+    return { allowed: true };
+  };
+
   const handleAssignFromBench = (player: Player) => {
     if (assigningSlot === null) return;
+
+    const check = isPlayerSelectable(player);
+    if (!check.allowed) {
+      alert(check.reason);
+      return;
+    }
 
     if (assigningSlot === 'impact') {
       setImpactPlayer(player);
@@ -486,12 +518,12 @@ export default function FranchiseHQ() {
 
   // Department scores mapper for charts
   const departments = [
-    { label: 'Overall Rating', key: 'overallScore', max: 100 },
-    { label: 'Batting Strength', key: 'battingScore', max: 10 },
-    { label: 'Bowling Strength', key: 'bowlingScore', max: 10 },
-    { label: 'All-Rounder Quality', key: 'arScore', max: 10 },
-    { label: 'Wicketkeeping Quality', key: 'wkScore', max: 10 },
-    { label: 'Impact Player Value', key: 'impactScore', max: 10 },
+    { label: 'Overall Score', key: 'overallScore', max: 100 },
+    { label: 'Batting (30%)', key: 'battingScore', max: 100 },
+    { label: 'Bowling (30%)', key: 'bowlingScore', max: 100 },
+    { label: 'Team Balance (20%)', key: 'balanceScore', max: 100 },
+    { label: 'Impact Player (10%)', key: 'impactScore', max: 100 },
+    { label: 'Squad Combination (10%)', key: 'combinationScore', max: 100 },
   ];
 
   // Tournament predictions
@@ -1133,7 +1165,25 @@ export default function FranchiseHQ() {
                   
                   {/* Validation Box */}
                   <div className="glass-panel p-5 rounded-2xl space-y-4">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-1.5">
+                    {/* Live Counter */}
+                    <div className="bg-void/40 border border-white/5 p-3.5 rounded-xl space-y-2">
+                      <div className="text-[10px] font-black uppercase text-neon-gold tracking-widest border-b border-white/5 pb-1 mb-2">Playing XI</div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-av-muted">Indian :</span>
+                        <span className="font-extrabold text-white">{xiPlayers.filter(p => !p.overseas).length}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-av-muted">Overseas :</span>
+                        <span className="font-extrabold text-white">{osCountVal} / 4</span>
+                      </div>
+                      <div className="text-[10px] font-black uppercase text-neon-cyan tracking-widest border-b border-white/5 pb-1 mt-3 mb-2">Impact Player</div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-av-muted">Availability :</span>
+                        <span className="font-extrabold text-neon-cyan">{osCountVal >= 4 ? 'Indian' : 'Indian / Overseas Allowed'}</span>
+                      </div>
+                    </div>
+
+                    <h3 className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-1.5 pt-2">
                       <CheckCircle className="h-4 w-4 text-neon-green" />
                       <span>Lineup Submission Rules</span>
                     </h3>
@@ -1206,21 +1256,6 @@ export default function FranchiseHQ() {
                             <div className="text-av-muted text-[10px] mt-0.5">This squad is official. No more editing allowed.</div>
                           </div>
                         </div>
-
-                        {!lockedRankings && !rankingsPublished && isOwnTeam && (
-                          <button
-                            onClick={() => {
-                              if (confirm("Are you sure you want to unlock and edit your lineup?")) {
-                                setSubmittedLocal(false);
-                                // Set submission status on server back to draft
-                                submitTeam(playingXI, impactPlayer, captainId, viceCaptainId, false);
-                              }
-                            }}
-                            className="w-full bg-glass hover:bg-glass-hover text-white text-xs py-2 rounded-lg font-bold border border-border-custom cursor-pointer"
-                          >
-                            Unlock & Modify Lineup
-                          </button>
-                        )}
                       </div>
                     ) : (
                       isOwnTeam ? (
@@ -1358,10 +1393,9 @@ export default function FranchiseHQ() {
                     <span className="text-[10px] font-black uppercase text-neon-gold tracking-widest">Admin Control Override</span>
                     <button
                       onClick={() => triggerAdminAction('force-start-analysis')}
-                      className="bg-neon-gold text-midnight py-2 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center space-x-1"
+                      className="bg-neon-gold hover:bg-neon-gold/80 transition-all text-midnight py-2.5 rounded-lg text-xs font-black uppercase tracking-wider flex items-center justify-center space-x-1.5 cursor-pointer"
                     >
-                      <Play className="h-3.5 w-3.5 fill-midnight" />
-                      <span>Force Auto-Submit & Analyze</span>
+                      <span>🏆 Generate AI Results</span>
                     </button>
                   </div>
                 )}
@@ -1369,6 +1403,67 @@ export default function FranchiseHQ() {
             ) : (
               <div className="space-y-6">
                 
+                {/* 🏆 IPL Auction Winner Champion Spotlight (Feature 8) */}
+                {winnerTeam && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    style={{
+                      borderColor: 'rgba(245, 197, 24, 0.4)',
+                      background: 'linear-gradient(135deg, rgba(245,197,24,0.1) 0%, rgba(4,4,12,0.95) 100%)'
+                    }}
+                    className="border rounded-3xl p-6 relative overflow-hidden shadow-[0_0_50px_rgba(245,197,24,0.15)]"
+                  >
+                    {/* Ambience beams */}
+                    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                      <div className="arena-beam" />
+                      <div className="arena-beam" />
+                    </div>
+                    
+                    <div className="flex flex-col md:flex-row items-stretch justify-between gap-6 relative z-10">
+                      <div className="flex flex-col justify-between space-y-4 flex-1">
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="bg-neon-gold text-midnight text-[9px] font-black uppercase px-2.5 py-1 rounded-full tracking-widest leading-none">🏆 IPL Auction Winner</span>
+                            <span className="text-[10px] font-black text-neon-gold uppercase tracking-widest border border-neon-gold/30 bg-neon-gold/10 px-2.5 py-0.5 rounded-full">Rank #1</span>
+                          </div>
+                          
+                          <h2 className="text-3xl sm:text-4xl font-black text-white uppercase tracking-wide flex items-center gap-3 font-barlow leading-tight">
+                            <span className="text-4xl shrink-0">{winnerTeam.teamEmoji}</span>
+                            <span className="text-neon-gold">{winnerTeam.teamName}</span>
+                          </h2>
+                          
+                          <p className="text-xs text-av-muted mt-2 max-w-xl leading-relaxed">
+                            Following the simulated season matches, <span className="text-white font-bold">{winnerTeam.teamName}</span> under Captain <span className="text-neon-gold font-bold">{(() => {
+                              const franchise = teams.find(t => t.id === winnerTeam.teamId);
+                              const submission = submittedTeams[winnerTeam.teamId];
+                              return franchise?.squad.find(p => p.id === submission?.captainId)?.name || 'N/A';
+                            })()}</span> is evaluated by the BCCI AI engine as the strongest franchise squad with an overall score of <span className="font-extrabold text-neon-green">{winnerTeam.overallScore}</span>.
+                          </p>
+                        </div>
+
+                        {/* Quick evaluation scores row */}
+                        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-2 border-t border-white/5">
+                          <div className="text-xs"><span className="text-av-muted">Batting:</span> <span className="font-bold text-white">{winnerTeam.battingScore}</span></div>
+                          <div className="text-xs"><span className="text-av-muted">Bowling:</span> <span className="font-bold text-white">{winnerTeam.bowlingScore}</span></div>
+                          <div className="text-xs"><span className="text-av-muted">Balance:</span> <span className="font-bold text-white">{winnerTeam.balanceScore}</span></div>
+                          <div className="text-xs"><span className="text-av-muted">Impact:</span> <span className="font-bold text-white">{winnerTeam.impactScore}</span></div>
+                          <div className="text-xs"><span className="text-av-muted">Verdict:</span> <span className="font-bold text-neon-green">{winnerTeam.verdict}</span></div>
+                        </div>
+                      </div>
+
+                      {/* Giant score card */}
+                      <div className="text-center md:text-right shrink-0 flex flex-col justify-center items-center md:items-end bg-void/65 border border-white/8 px-8 py-6 rounded-2xl min-w-[170px] shadow-2xl relative">
+                        <span className="text-[10px] text-av-muted font-bold block uppercase tracking-widest">AI Power Rating</span>
+                        <span className="text-5xl font-black text-neon-gold tracking-widest block mt-2 font-bebas leading-none" style={{ textShadow: '0 0 20px rgba(245,197,24,0.4)' }}>{winnerTeam.overallScore}</span>
+                        <span className="text-[10px] font-black uppercase text-neon-green mt-3.5 block tracking-widest bg-neon-green/10 px-3 py-1 rounded-full border border-neon-green/20">
+                          🥇 CHAMPION
+                        </span>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
                 {/* Print Only Header */}
                 <div className="hidden print:block text-center border-b border-black/15 pb-4 mb-6">
                   <h2 className="text-3xl font-extrabold text-black">AUCTIONVERSE OFFICIAL POWER RANKINGS</h2>
@@ -1488,11 +1583,14 @@ export default function FranchiseHQ() {
                               <span className="text-[10px] text-av-muted font-bold block mt-0.5">
                                 Predicted Finish: <span className="text-neon-gold">#{activeRankedStats.predictedPosition} Place</span>
                               </span>
+                              <span className="text-[10px] font-black uppercase text-neon-green tracking-wide mt-1 block">
+                                Verdict: {activeRankedStats.verdict}
+                              </span>
                             </div>
                           </div>
 
                           <div className="text-right">
-                            <span className="text-[10px] text-av-muted font-bold block uppercase">Power Rating</span>
+                            <span className="text-[10px] text-av-muted font-bold block uppercase">Overall Score</span>
                             <span className="text-2xl font-black text-neon-gold print:text-black">{activeRankedStats.overallScore}</span>
                           </div>
                         </div>
@@ -1501,23 +1599,34 @@ export default function FranchiseHQ() {
 
                         {/* Projections breakdown */}
                         <div className="space-y-3">
-                          <h4 className="text-[10px] font-black uppercase tracking-wider text-white print:text-black">Department Metrics (out of 10)</h4>
+                          <div className="flex justify-between items-center text-xs font-semibold">
+                            <span className="text-av-muted">Squad Captain:</span>
+                            <span className="text-white font-bold">
+                              {(() => {
+                                const franchise = teams.find(t => t.id === activeRankedStats.teamId);
+                                const submission = submittedTeams[activeRankedStats.teamId];
+                                return franchise?.squad.find(p => p.id === submission?.captainId)?.name || 'N/A';
+                              })()}
+                            </span>
+                          </div>
+
+                          <h4 className="text-[10px] font-black uppercase tracking-wider text-white print:text-black pt-1">Department Projections</h4>
                           {[
-                            { label: 'Batting Rating (25%)', score: activeRankedStats.battingScore, color: 'bg-neon-cyan' },
-                            { label: 'Bowling Rating (25%)', score: activeRankedStats.bowlingScore, color: 'bg-neon-red' },
-                            { label: 'All-Rounders Rating (15%)', score: activeRankedStats.arScore, color: 'bg-neon-purple' },
-                            { label: 'Wicketkeeper Rating (5%)', score: activeRankedStats.wkScore, color: 'bg-neon-gold' },
-                            { label: 'Impact Player Value (5%)', score: activeRankedStats.impactScore, color: 'bg-neon-green' }
+                            { label: 'Batting Score (30%)', score: activeRankedStats.battingScore, color: 'bg-neon-cyan' },
+                            { label: 'Bowling Score (30%)', score: activeRankedStats.bowlingScore, color: 'bg-neon-red' },
+                            { label: 'Team Balance (20%)', score: activeRankedStats.balanceScore, color: 'bg-neon-purple' },
+                            { label: 'Impact Player Value (10%)', score: activeRankedStats.impactScore, color: 'bg-neon-green' },
+                            { label: 'Squad Combination (10%)', score: activeRankedStats.combinationScore, color: 'bg-neon-gold' }
                           ].map(metric => (
                             <div key={metric.label} className="space-y-1">
                               <div className="flex justify-between text-xs font-semibold">
                                 <span className="text-av-muted print:text-black/70">{metric.label}</span>
-                                <span className="text-white font-bold print:text-black">{metric.score} / 10</span>
+                                <span className="text-white font-bold print:text-black">{metric.score} / 100</span>
                               </div>
                               <div className="w-full bg-void h-1.5 rounded-full overflow-hidden border border-white/5 print:border-black/5">
                                 <div 
                                   className={`h-full rounded-full ${metric.color}`} 
-                                  style={{ width: `${metric.score * 10}%` }}
+                                  style={{ width: `${metric.score}%` }}
                                 />
                               </div>
                             </div>
@@ -1527,25 +1636,25 @@ export default function FranchiseHQ() {
                         <div className="w-full h-px bg-border-custom/50 print:bg-black/10" />
 
                         {/* Strengths & Weaknesses */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <span className="text-[10px] font-black uppercase text-neon-green tracking-wider block">Strengths</span>
+                        <div className="space-y-3">
+                          <div>
+                            <span className="text-[10px] font-black uppercase text-neon-green tracking-wider block mb-1">Strengths</span>
                             <div className="space-y-1">
                               {activeRankedStats.strengths?.map((str, idx) => (
-                                <span key={idx} className="inline-flex items-center text-[10px] font-bold text-neon-green bg-neon-green/10 px-2 py-0.5 rounded-full border border-neon-green/20 mr-1.5 mb-1.5">
-                                  {str}
-                                </span>
+                                <div key={idx} className="flex items-center text-[10px] font-bold text-neon-green bg-neon-green/10 px-2.5 py-1 rounded-lg border border-neon-green/20 mb-1">
+                                  <span className="mr-1.5 font-bold">✔</span> {str}
+                                </div>
                               ))}
                             </div>
                           </div>
 
-                          <div className="space-y-2">
-                            <span className="text-[10px] font-black uppercase text-neon-red tracking-wider block">Weaknesses</span>
+                          <div>
+                            <span className="text-[10px] font-black uppercase text-neon-red tracking-wider block mb-1">Weaknesses</span>
                             <div className="space-y-1">
                               {activeRankedStats.weaknesses?.map((weak, idx) => (
-                                <span key={idx} className="inline-flex items-center text-[10px] font-bold text-neon-red bg-neon-red/10 px-2 py-0.5 rounded-full border border-neon-red/20 mr-1.5 mb-1.5">
-                                  {weak}
-                                </span>
+                                <div key={idx} className="flex items-center text-[10px] font-bold text-neon-red bg-neon-red/10 px-2.5 py-1 rounded-lg border border-neon-red/20 mb-1">
+                                  <span className="mr-1.5 font-bold">•</span> {weak}
+                                </div>
                               ))}
                             </div>
                           </div>
@@ -1797,7 +1906,7 @@ export default function FranchiseHQ() {
                         className="bg-glass border border-border-custom hover:bg-glass-hover text-white py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center space-x-2"
                       >
                         <RefreshCw className="h-3.5 w-3.5 text-neon-cyan" />
-                        <span>Generate Standing</span>
+                        <span>🏆 Generate AI Results</span>
                       </button>
 
                       <button
@@ -1897,41 +2006,60 @@ export default function FranchiseHQ() {
               {/* Modal List */}
               <div className="p-4 overflow-y-auto flex-1 space-y-2">
                 {modalAvailableBench.length > 0 ? (
-                  modalAvailableBench.map(player => (
-                    <div
-                      key={player.id}
-                      onClick={() => handleAssignFromBench(player)}
-                      className="bg-void/40 hover:bg-void/80 border border-white/5 hover:border-border-custom-hover p-3 rounded-xl flex items-center justify-between cursor-pointer transition-all duration-200"
-                    >
-                      <div className="flex items-center space-x-3 min-w-0">
-                        <span className="text-xl shrink-0">{player.flag}</span>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-white uppercase tracking-wide truncate text-xs">{player.name}</span>
-                            {player.overseas && (
-                              <span className="text-[7px] px-1 bg-neon-cyan/20 text-neon-cyan rounded font-bold uppercase shrink-0">OS</span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className={`text-[9px] font-bold ${
-                              player.role === 'BAT' ? 'text-neon-cyan' :
-                              player.role === 'BOWL' ? 'text-neon-red' :
-                              player.role === 'WK' ? 'text-neon-gold' :
-                              'text-neon-purple'
-                            }`}>
-                              {player.role}
-                            </span>
-                            <span className="text-[9px] text-av-muted">OVR {player.overall}</span>
+                  modalAvailableBench.map(player => {
+                    const check = isPlayerSelectable(player);
+                    const isDisabled = !check.allowed;
+
+                    return (
+                      <div
+                        key={player.id}
+                        onClick={() => {
+                          if (check.allowed === false) {
+                            alert(check.reason);
+                            return;
+                          }
+                          handleAssignFromBench(player);
+                        }}
+                        className={`border p-3 rounded-xl flex items-center justify-between transition-all duration-200 ${
+                          isDisabled
+                            ? 'opacity-40 border-neon-red/20 bg-neon-red/5 cursor-not-allowed'
+                            : 'bg-void/40 hover:bg-void/80 border-white/5 hover:border-border-custom-hover cursor-pointer'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-3 min-w-0">
+                          <span className="text-xl shrink-0">{player.flag}</span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-white uppercase tracking-wide truncate text-xs">{player.name}</span>
+                              {player.overseas && (
+                                <span className="text-[7px] px-1 bg-neon-cyan/20 text-neon-cyan rounded font-bold uppercase shrink-0">OS</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className={`text-[9px] font-bold ${
+                                player.role === 'BAT' ? 'text-neon-cyan' :
+                                player.role === 'BOWL' ? 'text-neon-red' :
+                                player.role === 'WK' ? 'text-neon-gold' :
+                                'text-neon-purple'
+                              }`}>
+                                {player.role}
+                              </span>
+                              <span className="text-[9px] text-av-muted">OVR {player.overall}</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="text-right">
-                        <span className="text-xs font-extrabold text-neon-green block">₹{player.soldPrice?.toFixed(2)} Cr</span>
-                        <span className="text-[8px] text-av-muted block uppercase mt-0.5">Auction Buy</span>
+                        <div className="text-right flex flex-col items-end gap-1">
+                          <span className="text-xs font-extrabold text-neon-green block">₹{player.soldPrice?.toFixed(2)} Cr</span>
+                          {isDisabled && (
+                            <span className="text-[8px] font-bold text-neon-red uppercase border border-neon-red/20 bg-neon-red/10 px-1.5 py-0.5 rounded leading-none">
+                              Blocked
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="text-center py-12 text-xs text-av-muted italic">
                     No available bench players match this filter

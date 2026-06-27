@@ -688,111 +688,168 @@ app.prepare().then(() => {
 
       const xi = submission.playingXI || [];
       const impact = submission.impactPlayer;
+      const captainId = submission.captainId;
+      const viceCaptainId = submission.viceCaptainId;
       if (xi.length === 0) return;
 
-      // 1. Batting Strength (25%): Average batting of top 7 players
-      const battingScores = [...xi].map(p => p.batting || 50).sort((a, b) => b - a);
-      const batAvg = battingScores.slice(0, 7).reduce((sum, val) => sum + val, 0) / Math.min(7, battingScores.length) || 50;
+      const xiPlayers = xi.filter(x => x !== null);
 
-      // 2. Bowling Strength (25%): Average bowling of top 5 bowlers (BOWL or AR)
-      const bowlers = xi.filter(p => p.role === 'BOWL' || p.role === 'AR');
-      const bowlingScores = bowlers.map(p => p.bowling || 50).sort((a, b) => b - a);
-      const bowlAvg = bowlingScores.slice(0, 5).reduce((sum, val) => sum + val, 0) / Math.max(1, Math.min(5, bowlingScores.length)) || 50;
-
-      // 3. All-Rounder Quality (15%): Average overall of ARs * factor of count
-      const arPlayers = xi.filter(p => p.role === 'AR');
-      const arAvg = arPlayers.length > 0 
-        ? arPlayers.reduce((sum, p) => sum + p.overall, 0) / arPlayers.length 
-        : 40;
-      const arFactor = Math.min(1.0, arPlayers.length / 3); 
-      const arScore = arAvg * arFactor + (1.0 - arFactor) * 40;
-
-      // 4. Wicketkeeper Quality (5%): best OVR of WK
-      const wks = xi.filter(p => p.role === 'WK');
-      const wkScore = wks.length > 0 
-        ? Math.max(...wks.map(p => p.overall)) 
-        : 40;
-
-      // 5. Opening Pair Strength (10%): average batting of first 2 slots
+      // --- 1. Batting Score (30%) ---
       const opener1 = xi[0] ? (xi[0].batting || 50) : 50;
       const opener2 = xi[1] ? (xi[1].batting || 50) : 50;
-      const openingScore = (opener1 + opener2) / 2;
+      const openerAvg = (opener1 + opener2) / 2;
 
-      // 6. Middle Order Strength (10%): average batting of slots 3, 4, 5
       const m3 = xi[2] ? (xi[2].batting || 50) : 50;
       const m4 = xi[3] ? (xi[3].batting || 50) : 50;
       const m5 = xi[4] ? (xi[4].batting || 50) : 50;
-      const middleScore = (m3 + m4 + m5) / 3;
+      const middleAvg = (m3 + m4 + m5) / 3;
 
-      // 7. Finishing Ability (5%): average overall of slots 6, 7
-      const f6 = xi[5] ? (xi[5].overall || 50) : 50;
-      const f7 = xi[6] ? (xi[6].overall || 50) : 50;
-      const finishingScore = (f6 + f7) / 2;
+      const f6 = xi[5] ? (xi[5].batting || 50) : 50;
+      const f7 = xi[6] ? (xi[6].batting || 50) : 50;
+      const finisherAvg = (f6 + f7) / 2;
 
-      // 8. Spin Department (2.5%)
-      const spinBowlers = xi.filter(p => p.bowlingStyle && (
-        p.bowlingStyle.toLowerCase().includes('spin') || 
-        p.bowlingStyle.toLowerCase().includes('orthodox') || 
-        p.bowlingStyle.toLowerCase().includes('legbreak') ||
-        p.bowlingStyle.toLowerCase().includes('offbreak')
-      ));
-      const spinScore = spinBowlers.length > 0
-        ? spinBowlers.reduce((sum, p) => sum + (p.bowling || 50), 0) / spinBowlers.length
-        : 50;
+      const top7 = xiPlayers.slice(0, 7);
+      const lhbCount = top7.filter(p => p.battingStyle && p.battingStyle.toUpperCase().includes('LEFT')).length;
+      const rhbCount = top7.filter(p => p.battingStyle && p.battingStyle.toUpperCase().includes('RIGHT')).length;
+      const lrScore = (lhbCount > 0 && rhbCount > 0) ? 95 : 65;
 
-      // 9. Pace Department (2.5%)
-      const paceBowlers = xi.filter(p => p.bowlingStyle && (
-        p.bowlingStyle.toLowerCase().includes('fast') || 
-        p.bowlingStyle.toLowerCase().includes('medium') || 
+      const srAvg = top7.reduce((sum, p) => sum + (p.strikeRate || 135), 0) / Math.max(1, top7.length);
+      const strikeRateScore = Math.min(100, Math.max(50, (srAvg - 110) * 1.6));
+
+      const battingScore = parseFloat((
+        openerAvg * 0.20 +
+        middleAvg * 0.30 +
+        finisherAvg * 0.20 +
+        lrScore * 0.15 +
+        strikeRateScore * 0.15
+      ).toFixed(1));
+
+      // --- 2. Bowling Score (30%) ---
+      const fastBowlers = xiPlayers.filter(p => p.bowlingStyle && (
+        p.bowlingStyle.toLowerCase().includes('fast') ||
+        p.bowlingStyle.toLowerCase().includes('medium') ||
         p.bowlingStyle.toLowerCase().includes('seam') ||
         p.bowlingStyle.toLowerCase().includes('pace')
       ));
-      const paceScore = paceBowlers.length > 0
-        ? paceBowlers.reduce((sum, p) => sum + (p.bowling || 50), 0) / paceBowlers.length
-        : 50;
+      const fastAvg = fastBowlers.length > 0
+        ? fastBowlers.reduce((sum, p) => sum + (p.bowling || 50), 0) / fastBowlers.length
+        : 45;
 
-      // 10. Impact Player Value (5%)
-      const impactScore = impact ? impact.overall : 40;
+      const sortedPacers = [...fastBowlers].sort((a, b) => b.bowling - a.bowling);
+      const deathScore = sortedPacers.length > 0
+        ? (sortedPacers.slice(0, 2).reduce((sum, p) => sum + (p.bowling || 50), 0) / Math.min(2, sortedPacers.length))
+        : 40;
 
-      // Overall Score Calculation (out of 100)
-      const overallScore = parseFloat((
-        batAvg * 0.25 + 
-        bowlAvg * 0.25 + 
-        arScore * 0.15 + 
-        wkScore * 0.05 + 
-        openingScore * 0.10 + 
-        middleScore * 0.10 + 
-        finishingScore * 0.05 + 
-        spinScore * 0.025 + 
-        paceScore * 0.025 + 
-        impactScore * 0.05
+      const spinBowlers = xiPlayers.filter(p => p.bowlingStyle && (
+        p.bowlingStyle.toLowerCase().includes('spin') ||
+        p.bowlingStyle.toLowerCase().includes('orthodox') ||
+        p.bowlingStyle.toLowerCase().includes('legbreak') ||
+        p.bowlingStyle.toLowerCase().includes('offbreak')
+      ));
+      const spinAvg = spinBowlers.length > 0
+        ? spinBowlers.reduce((sum, p) => sum + (p.bowling || 50), 0) / spinBowlers.length
+        : 45;
+
+      const styles = new Set(xiPlayers.map(p => p.bowlingStyle || '').filter(s => s !== ''));
+      const varietyScore = Math.min(100, 50 + styles.size * 12);
+
+      const topBowlers = [...xiPlayers].sort((a, b) => b.bowling - a.bowling);
+      const wicketTakingScore = topBowlers.slice(0, 4).reduce((sum, p) => sum + (p.bowling || 50), 0) / 4;
+
+      const bowlingScore = parseFloat((
+        fastAvg * 0.20 +
+        deathScore * 0.20 +
+        spinAvg * 0.20 +
+        varietyScore * 0.20 +
+        wicketTakingScore * 0.20
       ).toFixed(1));
 
-      // Heuristic Strengths & Weaknesses
+      // --- 3. Team Balance (20%) ---
+      const batDepthCount = xiPlayers.filter(p => p.batting >= 55).length;
+      const battingDepth = Math.min(100, 40 + batDepthCount * 6);
+
+      const bowlDepthCount = xiPlayers.filter(p => p.bowling >= 60).length;
+      const bowlingDepth = Math.min(100, 40 + bowlDepthCount * 10);
+
+      const arPlayers = xiPlayers.filter(p => p.role === 'AR');
+      const arScore = arPlayers.length > 0
+        ? arPlayers.reduce((sum, p) => sum + p.overall, 0) / arPlayers.length
+        : 40;
+      const arFactor = Math.min(1.0, arPlayers.length / 3);
+      const allRounderScore = arScore * arFactor + (1.0 - arFactor) * 45;
+
+      const osCount = xiPlayers.filter(p => p.overseas).length;
+      const osScore = osCount === 4 ? 100 : osCount === 3 ? 85 : osCount === 2 ? 70 : 50;
+
+      const balanceScore = parseFloat((
+        battingDepth * 0.25 +
+        bowlingDepth * 0.25 +
+        allRounderScore * 0.25 +
+        osScore * 0.25
+      ).toFixed(1));
+
+      // --- 4. Impact Player Value (10%) ---
+      const impactScore = impact ? parseFloat((impact.overall * 0.85 + (impact.potential || 50) * 0.15).toFixed(1)) : 40;
+
+      // --- 5. Squad Combination (10%) ---
+      const captain = xiPlayers.find(p => p.id === captainId);
+      const capScore = captain
+        ? Math.min(100, (captain.overall * 0.6 + (captain.experience || 50) * 0.4 + (captain.capped ? 8 : 0)))
+        : 45;
+
+      const expAvg = xiPlayers.reduce((sum, p) => sum + (p.experience || 50), 0) / 11;
+
+      const matchWinnersCount = xiPlayers.filter(p => p.overall >= 85).length + (impact && impact.overall >= 85 ? 1 : 0);
+      const matchWinnersScore = Math.min(100, 50 + matchWinnersCount * 10);
+
+      const flexibilityScore = Math.min(100, 50 + arPlayers.length * 8 + (xiPlayers.filter(p => p.role === 'WK').length > 1 ? 8 : 0));
+
+      const combinationScore = parseFloat((
+        capScore * 0.30 +
+        expAvg * 0.25 +
+        matchWinnersScore * 0.25 +
+        flexibilityScore * 0.20
+      ).toFixed(1));
+
+      // --- Overall Score (weighted sum out of 100) ---
+      const overallScore = parseFloat((
+        battingScore * 0.30 +
+        bowlingScore * 0.30 +
+        balanceScore * 0.20 +
+        impactScore * 0.10 +
+        combinationScore * 0.10
+      ).toFixed(1));
+
+      // Strengths & Weaknesses
       const strengths = [];
       const weaknesses = [];
 
-      if (openingScore >= 84) strengths.push('Elite Opening Pair');
-      if (middleScore >= 84) strengths.push('Elite Middle Order');
-      if (finishingScore >= 82) strengths.push('Devastating Finishers');
-      if (bowlAvg >= 84) strengths.push('Elite Bowlers');
-      if (paceScore >= 84) strengths.push('Fierce Pace Attack');
-      if (spinScore >= 84) strengths.push('Elite Spin Department');
-      if (arScore >= 78) strengths.push('Superb Squad Balance');
-      if (wkScore >= 84) strengths.push('World-Class Wicketkeeper');
-      if (impactScore >= 84) strengths.push('High-Impact Sub Options');
+      if (openerAvg >= 84) strengths.push('Elite Opening Pair');
+      if (middleAvg >= 84) strengths.push('Elite Middle Order');
+      if (finisherAvg >= 82) strengths.push('Devastating Finishers');
+      if (bowlingScore >= 84) strengths.push('Fierce Pace/Spin Attack');
+      if (deathScore >= 84) strengths.push('Superb Death Bowling');
+      if (spinAvg >= 82) strengths.push('Elite Spin Department');
+      if (balanceScore >= 84) strengths.push('Exceptional Squad Balance');
+      if (impactScore >= 82) strengths.push('High-Impact Sub Option');
+      if (capScore >= 85) strengths.push('World-Class Captaincy');
 
-      if (openingScore < 74) weaknesses.push('Unstable Opening Partnership');
-      if (middleScore < 74) weaknesses.push('Vulnerable Middle Order');
-      if (finishingScore < 72) weaknesses.push('Weak Lower-Order Finishing');
-      if (bowlAvg < 76) weaknesses.push('Leaky Bowling Attack');
-      if (arScore < 50) weaknesses.push('Lack of All-Round Depth');
-      if (wks.length === 0) weaknesses.push('No Specialist Wicketkeeper');
-      if (spinScore < 65) weaknesses.push('Weak Spin Department');
-      if (paceScore < 65) weaknesses.push('Weak Pace Department');
+      if (openerAvg < 74) weaknesses.push('Unstable Opening Partnership');
+      if (middleAvg < 74) weaknesses.push('Vulnerable Middle Order');
+      if (finisherAvg < 72) weaknesses.push('Weak Lower-Order Finishing');
+      if (bowlingScore < 76) weaknesses.push('Leaky Bowling Attack');
+      if (deathScore < 74) weaknesses.push('Poor Death Bowling Depth');
+      if (spinAvg < 65) weaknesses.push('Weak Spin Department');
+      if (balanceScore < 70) weaknesses.push('Lack of All-Round Depth');
+      if (osCount < 4) weaknesses.push('Underutilized Overseas Quota');
 
       if (strengths.length === 0) strengths.push('Balanced Squad Foundation');
       if (weaknesses.length === 0) weaknesses.push('No Major Weaknesses Found');
+
+      let verdict = 'Mid-Table Challenger';
+      if (overallScore >= 92) verdict = 'Championship Contender';
+      else if (overallScore >= 84) verdict = 'Playoff Contender';
+      else if (overallScore < 75) verdict = 'Rebuilding Phase';
 
       rankings.push({
         teamId: team.id,
@@ -801,13 +858,14 @@ app.prepare().then(() => {
         teamEmoji: team.emoji,
         primaryColor: team.primaryColor,
         overallScore,
-        battingScore: parseFloat((batAvg / 10).toFixed(1)),
-        bowlingScore: parseFloat((bowlAvg / 10).toFixed(1)),
-        arScore: parseFloat((arScore / 10).toFixed(1)),
-        wkScore: parseFloat((wkScore / 10).toFixed(1)),
-        impactScore: parseFloat((impactScore / 10).toFixed(1)),
+        battingScore,
+        bowlingScore,
+        balanceScore,
+        impactScore,
+        combinationScore,
         strengths,
-        weaknesses
+        weaknesses,
+        verdict
       });
     });
 
@@ -1234,6 +1292,9 @@ app.prepare().then(() => {
         const osCount = playingXI.filter(x => x && x.overseas).length;
         if (osCount > 4) {
           return callback({ success: false, reason: 'Maximum of 4 Overseas players allowed in the Playing XI' });
+        }
+        if (osCount === 4 && impactPlayer.overseas) {
+          return callback({ success: false, reason: 'Impact Player cannot be Overseas because Playing XI already contains 4 Overseas players.' });
         }
         if (!captainId || !viceCaptainId) {
           return callback({ success: false, reason: 'Captain and Vice-Captain must be selected' });

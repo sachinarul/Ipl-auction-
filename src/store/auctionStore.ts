@@ -44,12 +44,15 @@ interface AuctionStore {
     overallScore: number;
     battingScore: number;
     bowlingScore: number;
-    arScore: number;
-    wkScore: number;
+    balanceScore: number;
     impactScore: number;
+    combinationScore: number;
+    arScore?: number;
+    wkScore?: number;
     strengths: string[];
     weaknesses: string[];
     predictedPosition: number;
+    verdict: string;
   }> | null;
   rankingsPublished: boolean;
   lockedRankings: boolean;
