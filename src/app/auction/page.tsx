@@ -1641,14 +1641,14 @@ export default function AuctionArena() {
   /** Left: Player spotlight card */
   const renderSpotlightPanel = () => (
     <div 
-      className="lg:col-span-8 flex flex-col justify-between glass-panel rounded-2xl p-6 relative overflow-hidden transition-all duration-500"
+      className="lg:col-span-8 flex flex-col justify-between glass-panel rounded-3xl p-6 relative overflow-hidden transition-all duration-500 bg-gradient-to-br from-slate-900/90 via-void/95 to-midnight/90 border border-white/10"
       style={{
         borderColor: currentBidderId 
           ? `${teams.find((t) => t.id === currentBidderId)?.primaryColor}aa` 
           : 'var(--av-border)',
         boxShadow: currentBidderId 
-          ? `0 0 30px ${teams.find((t) => t.id === currentBidderId)?.primaryColor}25, inset 0 0 15px ${teams.find((t) => t.id === currentBidderId)?.primaryColor}10` 
-          : 'none',
+          ? `0 0 35px ${teams.find((t) => t.id === currentBidderId)?.primaryColor}20, inset 0 0 20px ${teams.find((t) => t.id === currentBidderId)?.primaryColor}10` 
+          : '0 10px 30px rgba(0,0,0,0.5)',
       }}
     >
       <AnimatePresence mode="wait">
@@ -1663,19 +1663,19 @@ export default function AuctionArena() {
             {/* Header */}
             <div className="flex justify-between items-start">
               <div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-2xl">{currentPlayer.flag}</span>
-                  <span className="text-xs font-semibold text-av-muted uppercase tracking-wider">
+                <div className="flex items-center space-x-2 bg-white/5 border border-white/10 px-3 py-1 rounded-full w-fit backdrop-blur-md">
+                  <span className="text-xl filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]">{currentPlayer.flag}</span>
+                  <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest font-barlow">
                     {currentPlayer.country} • Age {currentPlayer.age}
                   </span>
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-black tracking-wide mt-1 text-white uppercase">
+                <h2 className="text-3xl font-black tracking-wide mt-3.5 text-white uppercase font-barlow">
                   {currentPlayer.name}
                 </h2>
                 {/* V3: Set / Category badge */}
                 {currentPlayer.category && (
-                  <span className="text-[9px] uppercase font-bold tracking-widest text-neon-gold bg-neon-gold/10 border border-neon-gold/20 px-2 py-0.5 rounded-full block mt-1">
-                    {currentPlayer.category}
+                  <span className="text-[9px] uppercase font-black tracking-widest text-neon-gold bg-neon-gold/10 border border-neon-gold/20 px-3 py-1 rounded-full block mt-2.5 w-fit">
+                    {currentPlayer.category.replace(/_/g, ' ')}
                   </span>
                 )}
               </div>
@@ -1749,7 +1749,7 @@ export default function AuctionArena() {
                   <div className="text-xs">
                     <span className="text-av-muted block font-semibold">Capped Status</span>
                     <span className="font-bold text-white mt-0.5 block">
-                      {currentPlayer.capped ? ' Capped 🇮🇳' : ' Uncapped ⭐️'}
+                      {currentPlayer.capped ? 'Capped' : 'Uncapped'}
                     </span>
                   </div>
                 </div>
@@ -1757,41 +1757,44 @@ export default function AuctionArena() {
             </div>
 
             {/* Mobile Only: Interactive Bidding Panel inside Card (Replacing OVR Circle and Popularity) */}
-            <div className="flex lg:hidden flex-col items-stretch w-full gap-4 my-4 p-4 rounded-2xl bg-void/50 border border-white/5">
+            <div className="flex lg:hidden flex-col items-stretch w-full gap-4 my-4 p-5 rounded-2xl bg-gradient-to-b from-void/80 to-midnight/90 border border-white/10 shadow-2xl relative overflow-hidden">
+              {/* Inner ambient glow */}
+              <div className="absolute top-0 right-0 w-24 h-24 pointer-events-none opacity-20 bg-[radial-gradient(circle,_var(--av-neon-gold)_0%,_transparent_70%)]" />
+
               {/* Live countdown & Timer */}
-              <div className="flex justify-between items-center pb-3 border-b border-white/5">
-                <div className="flex items-center space-x-1.5 text-[10px] font-black uppercase text-av-muted">
-                  <span className={`h-2 w-2 rounded-full ${paused ? 'bg-neon-red' : 'bg-neon-green'} animate-pulse`} />
-                  <span>{paused ? 'PAUSED' : 'LIVE COUNTDOWN'}</span>
+              <div className="flex justify-between items-center pb-3.5 border-b border-white/10 relative z-10">
+                <div className="flex items-center space-x-2 text-[10px] font-extrabold uppercase text-av-muted tracking-wider">
+                  <span className={`h-2.5 w-2.5 rounded-full ${paused ? 'bg-neon-red' : 'bg-neon-green'} animate-pulse`} />
+                  <span className={paused ? 'text-neon-red' : 'text-neon-green'}>{paused ? 'PAUSED' : 'LIVE COUNTDOWN'}</span>
                 </div>
                 
-                <div className="bg-void border border-white/10 px-2.5 py-0.5 rounded-lg flex items-center gap-1">
-                  <span className="text-[8px] font-black text-av-muted uppercase font-barlow">Timer</span>
-                  <span className={`text-xs font-black ${countdown <= 3 ? 'text-neon-red animate-pulse' : 'text-white'}`}>
+                <div className="bg-void/85 border border-white/10 px-3 py-1 rounded-xl flex items-center gap-1.5 shadow-sm">
+                  <span className="text-[8px] font-black text-av-muted uppercase tracking-widest">Timer</span>
+                  <span className={`text-sm font-black font-bebas ${countdown <= 3 ? 'text-neon-red animate-pulse' : 'text-white'}`}>
                     {countdown}s
                   </span>
                 </div>
               </div>
 
-              {/* Price & Bid Leader Details */}
-              <div className="text-center py-2">
-                <span className="text-[9px] uppercase font-bold tracking-widest text-av-muted block mb-0.5">
+              {/* Price Display: Luxurious glass box */}
+              <div className="glass-panel py-4 px-6 rounded-2xl border border-white/10 bg-void/50 shadow-[inset_0_0_20px_rgba(255,255,255,0.01),0_4px_20px_rgba(0,0,0,0.4)] my-2 text-center relative z-10">
+                <span className="text-[10px] uppercase font-extrabold tracking-widest text-av-muted block mb-1">
                   {currentBidderId ? 'Current Bid' : 'Base Price'}
                 </span>
-                <h3 className="text-3xl font-black text-white font-bebas tracking-wide neon-glow-gold">
+                <h3 className="text-4xl font-extrabold text-white tracking-wide font-bebas neon-glow-gold">
                   {currentBidderId ? formatCr(currentBid) : `₹${currentPlayer.basePrice.toFixed(2)} Cr`}
                 </h3>
 
                 {/* Who is bidding */}
-                <div className="mt-2 text-xs font-extrabold flex items-center justify-center gap-1.5">
-                  <span className="text-av-muted text-[10px] uppercase font-rajdhani">Leader:</span>
+                <div className="mt-2.5 text-xs font-black flex items-center justify-center gap-2">
+                  <span className="text-av-muted text-[10px] uppercase tracking-wider font-rajdhani">Leader:</span>
                   {activeBidder ? (
                     <span 
                       style={{ color: activeBidder.primaryColor }}
-                      className="px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 inline-flex items-center space-x-1.5"
+                      className="px-3 py-1 rounded-full bg-white/5 border border-white/10 inline-flex items-center space-x-1.5 shadow-sm"
                     >
                       <span className="text-sm shrink-0">{activeBidder.emoji}</span>
-                      <span className="uppercase font-barlow tracking-wider">{activeBidder.name}</span>
+                      <span className="uppercase font-barlow tracking-wider text-[11px] font-black">{activeBidder.name}</span>
                       {currentBidderId === userTeamId && (
                         <span className="ml-1 text-[8px] px-1 bg-neon-gold text-midnight rounded font-black">YOU</span>
                       )}
@@ -1804,7 +1807,7 @@ export default function AuctionArena() {
 
               {/* Bid buttons */}
               {(phase === 'BIDDING' || phase === 'RESOLVING') && !paused && userTeamId ? (
-                <div>
+                <div className="relative z-10">
                   {(() => {
                     const userTeam = teams.find((t) => t.id === userTeamId);
                     const nextBidAmount = currentBidderId ? getNextBid(currentBid) : currentBid;
@@ -1836,10 +1839,10 @@ export default function AuctionArena() {
                       <button
                         onClick={() => placeBid()}
                         disabled={isDisabled}
-                        className={`w-full py-3.5 rounded-xl text-xs font-black tracking-widest uppercase transition-all duration-200 shadow-md ${
+                        className={`w-full py-4 rounded-xl text-xs font-black tracking-widest uppercase transition-all duration-300 shadow-lg ${
                           isDisabled
                             ? 'bg-glass border border-border-custom text-av-muted cursor-not-allowed opacity-60'
-                            : 'bg-gradient-to-r from-neon-gold to-yellow-500 text-midnight hover:shadow-[0_0_15px_rgba(245,197,24,0.3)] hover:scale-[1.02] cursor-pointer'
+                            : 'bg-gradient-to-r from-neon-gold via-yellow-500 to-amber-500 text-midnight hover:shadow-[0_0_20px_rgba(245,197,24,0.35)] hover:brightness-110 active:scale-[0.98] cursor-pointer'
                         }`}
                       >
                         {btnText}
@@ -1848,17 +1851,17 @@ export default function AuctionArena() {
                   })()}
                 </div>
               ) : (
-                <div className="text-center py-3 bg-void/50 border border-border-custom rounded-xl text-xs text-av-muted font-bold">
+                <div className="text-center py-4 bg-void/60 border border-border-custom rounded-xl text-xs text-av-muted font-bold relative z-10">
                   {paused ? 'Paused' : 'Bidding Closed'}
                 </div>
               )}
 
               {/* Stats Footer inside Bidding Box */}
-              <div className="flex justify-center border-t border-white/5 pt-3 mt-1">
+              <div className="flex justify-center border-t border-white/10 pt-3.5 mt-1 relative z-10">
                 <div className="text-xs text-center">
-                  <span className="text-av-muted block font-semibold">Capped Status</span>
-                  <span className="font-bold text-white mt-0.5 block">
-                    {currentPlayer.capped ? ' Capped 🇮🇳' : ' Uncapped ⭐️'}
+                  <span className="text-av-muted block font-extrabold uppercase tracking-wider text-[9px] mb-0.5">Capped Status</span>
+                  <span className="font-extrabold text-white text-xs block">
+                    {currentPlayer.capped ? 'Capped' : 'Uncapped'}
                   </span>
                 </div>
               </div>
