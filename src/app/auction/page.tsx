@@ -54,7 +54,7 @@ export default function AuctionArena() {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // View mode state: 'classic' | 'premium'
-  const [viewMode, setViewMode] = useState<'classic' | 'premium'>('premium');
+  const [viewMode, setViewMode] = useState<'classic' | 'premium'>('classic');
 
   // Camera angle view in premium mode: 'broadcast' | 'stage' | 'auctioneer' | 'spotlight' | 'teams'
   const [cameraView, setCameraView] = useState<'broadcast' | 'stage' | 'auctioneer' | 'spotlight' | 'teams'>('broadcast');
@@ -1123,13 +1123,6 @@ export default function AuctionArena() {
         <span className="text-[10px] font-bold text-av-muted font-rajdhani tracking-wider mr-2">
           {countdownText || 'ACTIVE ROUND'}
         </span>
-        
-        <button
-          onClick={() => setViewMode(prev => prev === 'classic' ? 'premium' : 'classic')}
-          className="bg-neon-cyan/15 text-neon-cyan border border-neon-cyan/35 hover:bg-neon-cyan/25 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all"
-        >
-          {viewMode === 'classic' ? '📺 Switch to Premium' : '📋 Switch to Classic'}
-        </button>
       </div>
     </div>
   );
@@ -1172,12 +1165,6 @@ export default function AuctionArena() {
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setViewMode('premium')}
-            className="bg-neon-gold/15 text-neon-gold border border-neon-gold/30 hover:bg-neon-gold/25 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all"
-          >
-            🏟️ Premium Arena
-          </button>
           <button
             onClick={() => setIsStatsOpen(true)}
             className="shrink-0 bg-neon-gold/15 text-neon-gold border border-neon-gold/30 hover:bg-neon-gold/25 px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider flex items-center space-x-2 transition-all duration-200"
